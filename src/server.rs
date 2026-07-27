@@ -780,13 +780,13 @@ if ($f.ShowDialog() -eq "OK") { Write-Output $f.SelectedPath }
                 .ok()
                 .and_then(|o| {
                     let s = String::from_utf8_lossy(&o.stdout).trim().to_string();
-                    if s.is_empty() { None } else { Some(s) }
+                    if s.is_empty() {
+                        None
+                    } else {
+                        Some(s)
+                    }
                 });
-            respond_json(
-                request,
-                200,
-                &json!({ "path": path }),
-            );
+            respond_json(request, 200, &json!({ "path": path }));
         }
 
         (false, _) if path.starts_with("/api/i18n/") => {
