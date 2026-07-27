@@ -96,6 +96,23 @@ body {
   transition: border-color 0.15s, box-shadow 0.15s; width: 100%;
 }
 .field input { font-family: var(--mono); }
+.input-row { display: flex; gap: 6px; align-items: stretch; }
+.input-row input { flex: 1; }
+.btn-browse {
+  background: var(--bg-raise); border: 1px solid var(--border);
+  border-radius: var(--radius); color: var(--text-muted);
+  padding: 0 14px; cursor: pointer; display: flex; align-items: center;
+  gap: 6px; font-size: 0.8rem; white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s; flex-shrink: 0; line-height: 1;
+}
+.btn-browse:hover { border-color: var(--orange); color: var(--orange); }
+.btn-browse svg { width: 18px; height: 18px; }
+.gh-link {
+  color: var(--text-muted); transition: color 0.15s; margin-left: auto;
+  display: flex; align-items: center; flex-shrink: 0;
+}
+.gh-link:hover { color: var(--orange); }
+.gh-link svg { width: 22px; height: 22px; }
 .field input:focus, .field select:focus {
   border-color: var(--orange); box-shadow: 0 0 0 3px rgba(247, 147, 58, 0.16);
 }

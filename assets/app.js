@@ -638,6 +638,15 @@ $('sel-none').addEventListener('click', () => { state.selection.clear(); redraw(
 
 $('scan-btn').addEventListener('click', startScan);
 $('workspace').addEventListener('keydown', (e) => { if (e.key === 'Enter') startScan(); });
+$('browseBtn').addEventListener('click', () => $('folderPicker').click());
+$('folderPicker').addEventListener('change', (e) => {
+  const path = e.target.files[0]?.path || e.target.value;
+  if (path) {
+    const dir = path.replace(/\\/g, '/').replace(/\/[^/]*$/, '');
+    $('workspace').value = dir;
+    localStorage.setItem('ferrite.workspace', dir);
+  }
+});
 $('cancel-btn').addEventListener('click', async () => {
   if (state.job) await fetch(`/api/scan/${state.job}/cancel`, { method: 'POST' });
 });
