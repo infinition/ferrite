@@ -26,6 +26,8 @@ const ICON_EDGE: u32 = 64;
 const DEFAULT_PORT: u16 = 7420;
 
 fn main() {
+    redirect_webview_data();
+
     let options = Options::from_args();
 
     let server = match bind(options.port) {
@@ -66,6 +68,32 @@ fn main() {
     }
 
     run_window(&url);
+}
+
+/// Redirects the WebView2 cache and profile away from the executable.
+///
+/// By default WebView2 creates a `Ferrite.exe.WebView2` folder in whatever
+/// directory the executable sits in, which defeats shipping a single portable
+/// file. The loader reads `WEBVIEW2_USER_DATA_FOLDER`, so setting it before the
+/// webview is created moves the whole thing under the per user application
+/// data directory.
+///
+/// This must run before any WebView2 environment is created.
+fn redirect_webview_data() {
+    let Some(base) = std::env::var_os("LOCALAPPDATA")
+        .or_else(|| std::env::var_os("XDG_DATA_HOME"))
+        .or_else(|| std::env::var_os("HOME"))
+    else {
+        return;
+    };
+
+    let directory = std::path::PathBuf::from(base)
+        .join("Ferrite")
+        .join("WebView2");
+
+    if std::fs::create_dir_all(&directory).is_ok() {
+        std::env::set_var("WEBVIEW2_USER_DATA_FOLDER", &directory);
+    }
 }
 
 /// Opens the local server on a stable port.

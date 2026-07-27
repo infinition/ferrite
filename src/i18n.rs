@@ -9,7 +9,7 @@ use std::sync::OnceLock;
 
 use serde_json::Value;
 
-pub const DEFAULT_LANG: &str = "fr";
+pub const DEFAULT_LANG: &str = "en";
 const FALLBACK_LANG: &str = "en";
 
 static RAW: &[(&str, &str)] = &[
