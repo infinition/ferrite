@@ -1,6 +1,21 @@
 # Contributing
 
-## Building
+## Task runner
+
+`make.bat` drives everything, so the same commands run locally and in CI.
+
+```
+make              list the tasks
+make dev          debug build, launched with the console attached
+make run          launch the release build
+make serve 8080   headless, interface served to the browser
+make check        fmt, clippy and i18n, the exact gates CI runs
+make build        release build
+make dist         build, verify, copy to dist\ and refresh the desktop shortcut
+make release 1.1.0
+```
+
+## Building by hand
 
 ```
 cargo build --release --target x86_64-pc-windows-msvc
@@ -8,15 +23,36 @@ cargo build --release --target x86_64-pc-windows-msvc
 
 The MSVC target matters: `build.rs` locates the Windows SDK resource compiler
 to embed the icon and the version metadata. Without it the build still
-succeeds, only the executable carries the default icon.
+succeeds, only the executable carries the default icon, which is why
+`tools/verify_release.ps1` exists and why CI runs it on every pull request.
 
-Before opening a pull request:
+Before opening a pull request, `make check` runs all three gates:
 
 ```
-cargo fmt --all
+cargo fmt --all -- --check
 cargo clippy --target x86_64-pc-windows-msvc --all-targets -- -D warnings
 python tools/check_i18n.py
 ```
+
+## Releasing
+
+```
+make release 1.1.0
+git push origin main --follow-tags
+```
+
+`make release` refuses to run on a dirty tree, rewrites the version in
+`Cargo.toml`, runs every gate, builds, then verifies that the produced binary
+declares exactly that version and carries an embedded icon. Only then does it
+commit and tag.
+
+Pushing the tag is deliberately left to you. The `Release` workflow picks it
+up, re-checks that the tag matches `Cargo.toml`, rebuilds, verifies again, and
+publishes `Ferrite.exe` together with its SHA256 as release assets.
+
+The rule table in `src/catalog.rs` carries `#[rustfmt::skip]`. It is aligned by
+hand, one rule per line, and rustfmt would otherwise explode it into one
+argument per line and lose the readability the macros exist to provide.
 
 ## Adding a detection rule
 

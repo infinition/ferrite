@@ -39,12 +39,21 @@ no runtime to install.
 Building from source:
 
 ```
+make build            release build
+make dist             build, verify, and place the binary in dist\
+make                  list every task
+```
+
+Or directly:
+
+```
 cargo build --release --target x86_64-pc-windows-msvc
 ```
 
 The MSVC target matters: `build.rs` locates the Windows SDK resource compiler
 to embed the icon and version metadata. Without it the build still succeeds,
-the executable just carries the default icon.
+the executable just carries the default icon, which is why
+`tools/verify_release.ps1` gates every build in CI.
 
 ```
 Ferrite.exe                 desktop window, port 7420

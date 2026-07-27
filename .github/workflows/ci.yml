@@ -36,6 +36,12 @@ jobs:
       - name: Build
         run: cargo build --release --target x86_64-pc-windows-msvc
 
+      # Catches an icon or version resource regression on every pull request,
+      # rather than at release time when it is too late.
+      - name: Verify binary
+        shell: pwsh
+        run: pwsh tools/verify_release.ps1 -Path target/x86_64-pc-windows-msvc/release/Ferrite.exe
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:

@@ -8,13 +8,38 @@ on:
 permissions:
   contents: write
 
+env:
+  CARGO_TERM_COLOR: always
+  TARGET: x86_64-pc-windows-msvc
+
 jobs:
   release:
-    name: Build and publish
+    name: Build, verify and publish
     runs-on: windows-latest
 
     steps:
       - uses: actions/checkout@v4
+
+      # The tag is the source of truth for the version. Cargo.toml must agree,
+      # otherwise the published binary would declare a version nobody asked
+      # for and the release assets would contradict their own metadata.
+      - name: Resolve version
+        id: version
+        shell: pwsh
+        run: |
+          $manifest = (Select-String -Path Cargo.toml -Pattern '^version\s*=\s*"(.+)"').Matches[0].Groups[1].Value
+          if ('${{ github.ref_type }}' -eq 'tag') {
+            $tag = '${{ github.ref_name }}'.TrimStart('v')
+            if ($tag -ne $manifest) {
+              Write-Host "::error::tag v$tag does not match Cargo.toml version $manifest"
+              exit 1
+            }
+            $version = $tag
+          } else {
+            $version = $manifest
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          Write-Host "Releasing version $version"
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -25,23 +50,64 @@ jobs:
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
 
-      # The MSVC target is required so build.rs can embed the icon through the
-      # Windows SDK resource compiler.
-      - name: Build
-        run: cargo build --release --target x86_64-pc-windows-msvc
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
-      - name: Compute checksum
+      - name: Check i18n coverage
+        run: python tools/check_i18n.py
+
+      # The MSVC target is required: build.rs reaches for the Windows SDK
+      # resource compiler to embed the icon and the version resource.
+      - name: Build
+        run: cargo build --release --target ${{ env.TARGET }}
+
+      # build.rs only warns when it cannot embed the icon, so a build with a
+      # missing resource compiler stays green. This turns that into a failure
+      # before anything reaches users.
+      - name: Verify binary
+        id: verify
         shell: pwsh
         run: |
-          $path = "target/x86_64-pc-windows-msvc/release/Ferrite.exe"
-          $hash = (Get-FileHash $path -Algorithm SHA256).Hash.ToLower()
+          $exe = "target/${{ env.TARGET }}/release/Ferrite.exe"
+          pwsh tools/verify_release.ps1 -Path $exe -ExpectedVersion '${{ steps.version.outputs.version }}'
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          $hash = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLower()
+          "sha256=$hash" >> $env:GITHUB_OUTPUT
           "$hash  Ferrite.exe" | Out-File -Encoding ascii Ferrite.exe.sha256
-          Write-Host "SHA256 $hash"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ferrite-${{ steps.version.outputs.version }}
+          path: |
+            target/${{ env.TARGET }}/release/Ferrite.exe
+            Ferrite.exe.sha256
+          if-no-files-found: error
 
       - name: Publish release
+        if: github.ref_type == 'tag'
         uses: softprops/action-gh-release@v2
         with:
+          name: Ferrite ${{ steps.version.outputs.version }}
           files: |
-            target/x86_64-pc-windows-msvc/release/Ferrite.exe
+            target/${{ env.TARGET }}/release/Ferrite.exe
             Ferrite.exe.sha256
           generate_release_notes: true
+          fail_on_unmatched_files: true
+          body: |
+            Download `Ferrite.exe` below and run it. Nothing to install: the
+            local server, the interface and the language catalogues are
+            embedded in the binary. WebView2 ships with Windows 11 and recent
+            Windows 10.
+
+            ```
+            SHA256  ${{ steps.version.outputs.sha256 }}
+            ```
+
+            Verify the download:
+
+            ```powershell
+            Get-FileHash Ferrite.exe -Algorithm SHA256
+            ```
