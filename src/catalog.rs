@@ -1,9 +1,9 @@
-//! Catalogue des artefacts regenerables, par ecosysteme.
+//! Catalogue of regenerable artifacts, grouped by ecosystem.
 //!
-//! Les regles les plus specifiques, celles qui portent une contrainte `under`
-//! ou `requires`, sont placees avant les regles generiques: la premiere qui
-//! correspond gagne. C'est ce qui permet de distinguer un `target` Cargo d'un
-//! `target` Maven, ou un `vendor` Composer d'un `vendor` Go.
+//! The most specific rules, those carrying an `under` or `requires`
+//! constraint, come before the generic ones: the first match wins. That
+//! ordering is what tells a Cargo `target` from a Maven `target`, or a
+//! Composer `vendor` from a Go `vendor`.
 
 use std::collections::HashSet;
 
@@ -32,7 +32,7 @@ pub struct Rule {
 
 const N: &[&str] = &[];
 
-/// Regle simple sur un nom de dossier.
+/// Plain rule on a directory name.
 macro_rules! d {
     ($id:expr, $cat:expr, $risk:expr, [$($n:expr),*], $restore:expr, $ign:expr) => {
         Rule { id: $id, cat: $cat, risk: $risk, kind: Kind::Dir, names: &[$($n),*],
@@ -40,7 +40,7 @@ macro_rules! d {
     };
 }
 
-/// Regle simple sur un nom de fichier.
+/// Plain rule on a file name.
 macro_rules! f {
     ($id:expr, $cat:expr, $risk:expr, [$($n:expr),*], $restore:expr, $ign:expr) => {
         Rule { id: $id, cat: $cat, risk: $risk, kind: Kind::File, names: &[$($n),*],
@@ -48,7 +48,7 @@ macro_rules! f {
     };
 }
 
-/// Regle sur des motifs de nom de fichier.
+/// Rule on file name patterns.
 macro_rules! fg {
     ($id:expr, $cat:expr, $risk:expr, [$($g:expr),*], $restore:expr, $ign:expr) => {
         Rule { id: $id, cat: $cat, risk: $risk, kind: Kind::File, names: N,
@@ -56,7 +56,7 @@ macro_rules! fg {
     };
 }
 
-/// Regle de dossier conditionnee a la presence de marqueurs voisins.
+/// Directory rule gated on sibling marker files being present.
 macro_rules! dreq {
     ($id:expr, $cat:expr, $risk:expr, [$($n:expr),*], [$($r:expr),*], $restore:expr, $ign:expr) => {
         Rule { id: $id, cat: $cat, risk: $risk, kind: Kind::Dir, names: &[$($n),*],
@@ -64,7 +64,7 @@ macro_rules! dreq {
     };
 }
 
-/// Regle de dossier conditionnee au nom du dossier parent.
+/// Directory rule gated on the parent directory name.
 macro_rules! dunder {
     ($id:expr, $cat:expr, $risk:expr, [$($n:expr),*], $under:expr, $restore:expr, $ign:expr) => {
         Rule { id: $id, cat: $cat, risk: $risk, kind: Kind::Dir, names: &[$($n),*],
@@ -72,6 +72,9 @@ macro_rules! dunder {
     };
 }
 
+// Hand aligned table: rustfmt would explode it into one argument per line
+// and destroy the readability the macros exist to provide.
+#[rustfmt::skip]
 pub static RULES: &[Rule] = &[
     // ================= JavaScript / Node =================
     d!("node_modules", "js", SAFE, ["node_modules"], "npm install", "node_modules/"),
@@ -230,7 +233,7 @@ pub static RULES: &[Rule] = &[
     d!("idea", "ide", CHECK, [".idea"], "JetBrains IDE", ".idea/"),
     d!("vscode_history", "ide", SAFE, [".history"], "VS Code Local History", ".history/"),
     d!("direnv", "ide", SAFE, [".direnv"], "direnv allow", ".direnv/"),
-    fg!("editor_swap", "ide", SAFE, ["*.swp", "*.swo", "*.swn", "*~"], "editeur", "*.sw[nop]"),
+    fg!("editor_swap", "ide", SAFE, ["*.swp", "*.swo", "*.swn", "*~"], "editor", "*.sw[nop]"),
 
     // ================= Systeme =================
     Rule { id: "os_junk", cat: "os", risk: SAFE, kind: Kind::File,
@@ -239,7 +242,7 @@ pub static RULES: &[Rule] = &[
     d!("os_junk_dirs", "os", SAFE, [".Spotlight-V100", ".Trashes", ".fseventsd", "$RECYCLE.BIN"],
        "OS", ".Spotlight-V100/"),
 
-    // ================= Generique, toujours en dernier =================
+    // ================= Generic, always last =================
     d!("generic_dist", "misc", CHECK, ["dist", "out"], "build", "dist/"),
     d!("generic_build", "misc", CHECK, ["build", "_build"], "build", "build/"),
     d!("generic_cache", "misc", CHECK, [".cache", ".temp", ".tmp"], "build", ".cache/"),
@@ -248,22 +251,40 @@ pub static RULES: &[Rule] = &[
     d!("log_dir", "misc", CHECK, ["logs"], "runtime", "logs/"),
     fg!("log_files", "misc", CHECK, ["*.log", "npm-debug.log*", "yarn-error.log*"], "runtime", "*.log"),
     fg!("pid_files", "misc", SAFE, ["*.pid", "*.pid.lock", "*.seed"], "runtime", "*.pid"),
-    fg!("patch_leftovers", "misc", CHECK, ["*.orig", "*.rej", "*.bak", "*.rs.bk"], "outil de patch", "*.orig"),
+    fg!("patch_leftovers", "misc", CHECK, ["*.orig", "*.rej", "*.bak", "*.rs.bk"], "patch tool", "*.orig"),
 ];
 
-/// Marqueurs qui identifient un dossier comme projet lors de la decouverte.
+/// Markers that identify a directory as a project during discovery.
 pub static PROJECT_MARKERS: &[&str] = &[
-    ".git", "package.json", "Cargo.toml", "pyproject.toml", "setup.py",
-    "requirements.txt", "go.mod", "pom.xml", "build.gradle", "build.gradle.kts",
-    "composer.json", "Gemfile", "mix.exs", "Package.swift", "pubspec.yaml",
-    "CMakeLists.txt", "Makefile", "*.sln", "*.csproj", "*.uproject",
-    "ProjectSettings", "project.godot", "Dockerfile",
+    ".git",
+    "package.json",
+    "Cargo.toml",
+    "pyproject.toml",
+    "setup.py",
+    "requirements.txt",
+    "go.mod",
+    "pom.xml",
+    "build.gradle",
+    "build.gradle.kts",
+    "composer.json",
+    "Gemfile",
+    "mix.exs",
+    "Package.swift",
+    "pubspec.yaml",
+    "CMakeLists.txt",
+    "Makefile",
+    "*.sln",
+    "*.csproj",
+    "*.uproject",
+    "ProjectSettings",
+    "project.godot",
+    "Dockerfile",
 ];
 
-/// Correspondance de motif limitee a `*` et `?`, insensible a la casse.
+/// Pattern matching limited to `*` and `?`, case insensitive.
 ///
-/// Ce sous-ensemble couvre tous les motifs du catalogue et evite d'embarquer
-/// une dependance de globbing complete.
+/// This subset covers every pattern in the catalogue and avoids pulling in a
+/// full globbing dependency.
 pub fn wildcard_match(pattern: &str, name: &str) -> bool {
     let pattern: Vec<char> = pattern.to_lowercase().chars().collect();
     let name: Vec<char> = name.to_lowercase().chars().collect();
@@ -298,20 +319,24 @@ fn name_matches(rule: &Rule, name: &str) -> bool {
     if rule.names.contains(&name) {
         return true;
     }
-    rule.globs.iter().any(|pattern| wildcard_match(pattern, name))
+    rule.globs
+        .iter()
+        .any(|pattern| wildcard_match(pattern, name))
 }
 
 fn has_marker(siblings: &HashSet<String>, markers: &[&str]) -> bool {
     markers.iter().any(|marker| {
         if marker.contains('*') || marker.contains('?') {
-            siblings.iter().any(|sibling| wildcard_match(marker, sibling))
+            siblings
+                .iter()
+                .any(|sibling| wildcard_match(marker, sibling))
         } else {
             siblings.contains(*marker)
         }
     })
 }
 
-/// Premiere regle qui correspond a l'entree, ou `None`.
+/// First rule matching the entry, or `None`.
 pub fn find_rule(
     name: &str,
     is_dir: bool,
@@ -323,7 +348,7 @@ pub fn find_rule(
     RULES.iter().find(|rule| {
         rule.kind == kind
             && name_matches(rule, name)
-            && rule.under.map_or(true, |under| under == parent_name)
+            && rule.under.is_none_or(|under| under == parent_name)
             && (rule.requires.is_empty() || has_marker(siblings, rule.requires))
     })
 }
@@ -332,7 +357,8 @@ pub fn rule_by_id(id: &str) -> Option<&'static Rule> {
     RULES.iter().find(|rule| rule.id == id)
 }
 
-/// Libelle affiche: le motif lui-meme, qui n'est pas du texte traduisible.
+/// Displayed label: the pattern itself, which is an identifier rather than
+/// translatable prose.
 pub fn display_name(rule: &Rule) -> String {
     let mut parts: Vec<String> = rule
         .names

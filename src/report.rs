@@ -1,4 +1,4 @@
-//! Mise en forme des resultats de scan pour le client.
+//! Shapes scan results for the client.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -47,15 +47,18 @@ pub struct ProjectReport {
     pub items: Vec<ItemReport>,
 }
 
-/// Table `rule_id -> (rel -> chemin absolu)` d'un projet.
+/// A project's `rule_id -> (rel -> absolute path)` table.
 ///
-/// Elle sert de reference d'autorite: seuls les chemins qu'elle contient
-/// peuvent etre supprimes, ce qui rend une selection forgee inoperante.
+/// It acts as the source of authority: only the paths it holds can be deleted,
+/// which makes a forged selection inert.
 pub type ProjectIndex = HashMap<String, HashMap<String, PathBuf>>;
 
-pub fn build(root: &Path, is_git: bool, mut scan: ProjectScan, id: usize)
-    -> (ProjectReport, ProjectIndex)
-{
+pub fn build(
+    root: &Path,
+    is_git: bool,
+    mut scan: ProjectScan,
+    id: usize,
+) -> (ProjectReport, ProjectIndex) {
     let mut index: ProjectIndex = HashMap::new();
     for bucket in &scan.buckets {
         let entry = index.entry(bucket.rule.id.to_string()).or_default();
@@ -64,14 +67,18 @@ pub fn build(root: &Path, is_git: bool, mut scan: ProjectScan, id: usize)
         }
     }
 
-    scan.buckets.sort_by(|a, b| b.size.cmp(&a.size));
+    // Largest first, so the interface leads with what actually costs space.
+    scan.buckets
+        .sort_by_key(|bucket| std::cmp::Reverse(bucket.size));
 
     let mut items = Vec::new();
     let mut reclaimable_size = 0u64;
     let mut reclaimable_files = 0u64;
 
     for bucket in &mut scan.buckets {
-        bucket.occurrences.sort_by(|a, b| b.size.cmp(&a.size));
+        bucket
+            .occurrences
+            .sort_by_key(|occurrence| std::cmp::Reverse(occurrence.size));
         reclaimable_size += bucket.size;
         reclaimable_files += bucket.files;
 
@@ -97,7 +104,11 @@ pub fn build(root: &Path, is_git: bool, mut scan: ProjectScan, id: usize)
             risk: bucket.rule.risk.to_string(),
             restore: bucket.rule.restore.to_string(),
             ignore_pattern: bucket.rule.ignore.to_string(),
-            ignore_status: if is_git { bucket.ignore_status.clone() } else { "na".to_string() },
+            ignore_status: if is_git {
+                bucket.ignore_status.clone()
+            } else {
+                "na".to_string()
+            },
             tracked_count: bucket.tracked_count,
             size: bucket.size,
             files: bucket.files,
@@ -109,10 +120,17 @@ pub fn build(root: &Path, is_git: bool, mut scan: ProjectScan, id: usize)
 
     let report = ProjectReport {
         id,
-        name: root.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default(),
+        name: root
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_default(),
         path: root.to_path_buf(),
         is_git,
-        branch: if is_git { scanner::git_branch(root) } else { String::new() },
+        branch: if is_git {
+            scanner::git_branch(root)
+        } else {
+            String::new()
+        },
         git_size: scan.git_size,
         total_size: scan.total_size,
         total_files: scan.total_files,
@@ -168,14 +186,16 @@ impl ProjectReport {
         })
     }
 
-    /// Retire du rapport les occurrences effectivement supprimees, pour que le
-    /// client reste synchrone sans relancer un scan complet.
+    /// Drops the occurrences that were actually removed, so the client stays
+    /// in sync without running a full scan again.
     pub fn apply_removals(&mut self, removed: &[(String, String, u64)]) {
         let freed: u64 = removed.iter().map(|(_, _, size)| size).sum();
 
         for item in self.items.iter_mut() {
-            let gone: Vec<&(String, String, u64)> =
-                removed.iter().filter(|(rule_id, _, _)| *rule_id == item.rule_id).collect();
+            let gone: Vec<&(String, String, u64)> = removed
+                .iter()
+                .filter(|(rule_id, _, _)| *rule_id == item.rule_id)
+                .collect();
             if gone.is_empty() {
                 continue;
             }
@@ -187,10 +207,15 @@ impl ProjectReport {
                 .filter(|occurrence| gone_rels.contains(&&occurrence.rel))
                 .collect();
 
-            item.size = item.size.saturating_sub(removed_here.iter().map(|o| o.size).sum::<u64>());
-            item.files = item.files.saturating_sub(removed_here.iter().map(|o| o.files).sum::<u64>());
+            item.size = item
+                .size
+                .saturating_sub(removed_here.iter().map(|o| o.size).sum::<u64>());
+            item.files = item
+                .files
+                .saturating_sub(removed_here.iter().map(|o| o.files).sum::<u64>());
             item.count = item.count.saturating_sub(gone.len());
-            item.occurrences.retain(|occurrence| !gone_rels.contains(&&occurrence.rel));
+            item.occurrences
+                .retain(|occurrence| !gone_rels.contains(&&occurrence.rel));
         }
 
         self.items.retain(|item| item.count > 0);

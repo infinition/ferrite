@@ -1,34 +1,41 @@
-//! Attache l'icone et les metadonnees a l'executable Windows.
+//! Attaches the icon and the version metadata to the Windows executable.
 //!
-//! L'echec de cette etape n'est pas bloquant: sans compilateur de ressources
-//! disponible, le binaire se construit quand meme, avec l'icone par defaut.
+//! A failure here is not fatal: with no resource compiler available the binary
+//! still builds, only with the default icon.
 
 fn main() {
     println!("cargo:rerun-if-changed=assets/icon.ico");
+    println!("cargo:rerun-if-changed=build.rs");
 
     #[cfg(windows)]
     {
+        let version = env!("CARGO_PKG_VERSION");
+
         let mut resource = winresource::WindowsResource::new();
         resource.set_icon("assets/icon.ico");
+        resource.set("ProductName", "Ferrite");
+        resource.set("FileDescription", "Ferrite, workspace cleanup");
+        resource.set("CompanyName", "infinition");
+        resource.set("LegalCopyright", "Copyright (c) infinition. MIT licensed.");
+        resource.set("OriginalFilename", "Ferrite.exe");
+        resource.set("InternalName", "Ferrite");
+        resource.set("ProductVersion", version);
+        resource.set("FileVersion", version);
 
-        // La detection automatique du compilateur de ressources echoue sur
-        // certaines installations du SDK Windows: on le localise nous-memes.
+        // Automatic detection of the resource compiler fails on some Windows
+        // SDK layouts, so locate it explicitly.
         if let Some(toolkit) = find_resource_compiler() {
             resource.set_toolkit_path(&toolkit);
         }
-        resource.set("ProductName", "Ferrite");
-        resource.set("FileDescription", "Ferrite, nettoyage de workspace");
-        resource.set("CompanyName", "infinition");
-        resource.set("LegalCopyright", "infinition");
 
         if let Err(error) = resource.compile() {
-            println!("cargo:warning=icone non embarquee: {error}");
+            println!("cargo:warning=icon not embedded: {error}");
         }
     }
 }
 
-/// Cherche le dossier contenant `rc.exe`, en prenant la version de SDK la plus
-/// recente. Retourne `None` si aucun compilateur de ressources n'est present.
+/// Finds the directory holding `rc.exe`, preferring the most recent SDK.
+/// Returns `None` when no resource compiler is installed.
 #[cfg(windows)]
 fn find_resource_compiler() -> Option<String> {
     let roots = [
@@ -51,5 +58,7 @@ fn find_resource_compiler() -> Option<String> {
     }
 
     candidates.sort();
-    candidates.pop().map(|path| path.to_string_lossy().to_string())
+    candidates
+        .pop()
+        .map(|path| path.to_string_lossy().to_string())
 }

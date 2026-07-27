@@ -1,4 +1,4 @@
 target/
-Ferrite.exe
+dist/
 __pycache__/
 *.py[cod]

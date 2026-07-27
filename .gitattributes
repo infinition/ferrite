@@ -1,0 +1,14 @@
+# Normalise line endings so diffs stay clean across platforms.
+* text=auto eol=lf
+
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+*.ps1   text eol=crlf
+
+*.png    binary
+*.ico    binary
+*.rgba   binary
+*.exe    binary
+
+# Keep generated assets out of language statistics.
+assets/locales/*.json linguist-detectable=false

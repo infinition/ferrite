@@ -1,145 +1,194 @@
-# Ferrite
+<h1 align="center">
+  <img src="assets/icon-180.png" width="96" alt=""><br>
+  Ferrite
+</h1>
 
-Application de bureau qui inventorie les artefacts regenerables d'un workspace
-de developpement, mesure ce qu'ils occupent, verifie leur couverture
-`.gitignore` et permet de les supprimer par selection.
+<p align="center">
+  Find and remove the regenerable build artifacts scattered across a
+  development workspace, and keep their <code>.gitignore</code> honest.
+</p>
 
-Un seul executable. Rien a installer, aucune dependance a deployer: le serveur
-local, l'interface et les catalogues de langue sont embarques dans le binaire.
+<p align="center">
+  <img src="https://img.shields.io/badge/platform-Windows-2b2f36" alt="Windows">
+  <img src="https://img.shields.io/badge/built%20with-Rust-c65a14" alt="Rust">
+  <img src="https://img.shields.io/badge/license-MIT-f7933a" alt="MIT">
+  <img src="https://img.shields.io/badge/rules-120-f7933a" alt="120 rules">
+  <img src="https://img.shields.io/badge/size-1.6%20MB-2b2f36" alt="1.6 MB">
+</p>
 
-## Construction
+<p align="center">
+  <img src="docs/screenshot.png" width="880" alt="Ferrite scanning a workspace">
+</p>
+
+A desktop application. One executable, nothing to install: the local server,
+the interface and the language catalogues are all embedded in the binary.
+
+Point it at a workspace folder. It walks every project inside, measures what
+each build artifact costs in bytes and files, tells you whether git is already
+ignoring it, and lets you delete what you pick.
+
+On the workspace this was built against, 45 projects, it reported 77.6 GB
+reclaimable out of 84.3 GB in 5.8 seconds.
+
+## Install
+
+Grab `Ferrite.exe` from the [releases](https://github.com/infinition/ferrite/releases)
+and run it. WebView2 ships with Windows 11 and recent Windows 10, so there is
+no runtime to install.
+
+Building from source:
 
 ```
 cargo build --release --target x86_64-pc-windows-msvc
 ```
 
-Le binaire sort dans `target\x86_64-pc-windows-msvc\release\ferrite.exe`.
-
-La cible MSVC est necessaire pour embarquer l'icone: `build.rs` localise le
-`rc.exe` du SDK Windows. Sans lui la construction reussit quand meme, avec
-l'icone par defaut.
-
-Options a l'execution:
+The MSVC target matters: `build.rs` locates the Windows SDK resource compiler
+to embed the icon and version metadata. Without it the build still succeeds,
+the executable just carries the default icon.
 
 ```
-ferrite.exe                 fenetre de bureau, port 7420
-ferrite.exe --port 8080     autre port
-ferrite.exe --headless      pas de fenetre, interface servie au navigateur
+Ferrite.exe                 desktop window, port 7420
+Ferrite.exe --port 8080     different port
+Ferrite.exe --headless      no window, interface served to the browser
 ```
 
-Le port par defaut est conserve tant qu'il est libre. L'interface memorise la
-langue, le dernier workspace et l'option de conservation dans le stockage local,
-qui est indexe par origine: un port variable les effacerait a chaque lancement.
+The default port is kept while it is free. The interface stores your language,
+last workspace and options in local storage, which is keyed by origin, so a
+port that changed on every launch would wipe them.
 
-## Architecture
+## How the scan works
 
-```
-src/main.rs      fenetre tao, webview wry, demarrage du serveur
-src/server.rs    etat, jobs de scan, routes HTTP
-src/scanner.rs   parcours, mesure, appels git, suppression
-src/catalog.rs   les 120 regles de detection
-src/report.rs    mise en forme des resultats
-src/i18n.rs      catalogues de langue embarques
-assets/          index.html, style.css, app.js, locales, icones
-tools/           generation d'icone, controle de couverture i18n
-```
+**Discovery.** Walks the workspace to the chosen depth, 1 to 6 levels, keeping
+directories that carry a project marker: `.git`, `package.json`, `Cargo.toml`,
+`pyproject.toml`, `go.mod`, `pom.xml`, `composer.json`, `mix.exs`, `*.sln`,
+`*.uproject` and others. A directory recognised as a project is not searched
+deeper.
 
-La fenetre est fournie par `tao` et `wry`, la couche sur laquelle Tauri est
-construit, utilisee sans le framework: cela evite une chaine d'outils
-JavaScript et garde un binaire unique. Le rendu passe par WebView2, present
-d'origine sur Windows 11.
+**Detection.** 120 rules across 18 ecosystems. The walk stops descending as
+soon as an artifact is recognised, which avoids double counting and makes the
+scan fast.
 
-## Le scan
+**Sizing.** Bytes and file count, per artifact and per project.
 
-1. **Decouverte.** Parcourt le workspace jusqu'a la profondeur choisie, de 1 a
-   6 niveaux, et retient les dossiers portant un marqueur de projet: `.git`,
-   `package.json`, `Cargo.toml`, `pyproject.toml`, `go.mod`, `pom.xml`,
-   `composer.json`, `mix.exs`, `*.sln`, `*.uproject`, et d'autres. Un projet
-   identifie n'est pas explore plus profond.
+**Git cross check.** `git check-ignore` resolves `.gitignore` coverage,
+`git ls-files` finds what is already committed.
 
-2. **Detection.** 120 regles sur 18 ecosystemes. Le parcours s'arrete des qu'un
-   artefact est reconnu, ce qui evite tout double comptage.
+### Ambiguous names carry a constraint
 
-3. **Mesure.** Volume et nombre de fichiers, par artefact et par projet.
+`target` is Cargo in one project and Maven in another. `vendor` is Composer or
+Go. `bin` is a .NET output directory or a folder of committed scripts. Those
+rules only fire when the right marker file sits next to the candidate:
 
-4. **Croisement git.** `git check-ignore` determine la couverture `.gitignore`,
-   `git ls-files` detecte ce qui est deja versionne.
-
-Les regles ambigues sont conditionnees a un marqueur voisin: `target` n'est
-propose que s'il y a un `Cargo.toml` ou un `pom.xml`, `vendor` que s'il y a un
-`composer.json` ou un `go.mod`, `bin` et `obj` que s'il y a un `.csproj`.
-
-Il n'y a volontairement aucune regle sur les dossiers nommes `models` ou
-`checkpoints`: dans une application Django ou Rails, `models/` contient du code
-source. Les poids de modeles sont detectes par extension de fichier, ce qui est
-precis sans faux positif.
-
-## Niveaux de risque
-
-| Niveau | Signification |
+| Rule | Fires only when the parent holds |
 |---|---|
-| **Sur** | Artefact de build pur, regenere par une commande. `node_modules`, `target`, `__pycache__`, `.next`, `venv`, `Pods`, `DerivedData`. |
-| **A verifier** | Generalement genere, mais peut contenir des sources selon le projet. `dist`, `build`, `out`, `vendor` en Go, `.idea`, `logs`. |
-| **Donnees** | Poids ou caches retelechargeables. La perte se mesure en bande passante. `*.safetensors`, `*.gguf`, `.cache/huggingface`, `wandb`. |
+| `target` as Cargo output | `Cargo.toml` |
+| `target` as Maven output | `pom.xml` |
+| `build` as Gradle output | `build.gradle` |
+| `vendor` as Composer deps | `composer.json` |
+| `vendor` as Go deps | `go.mod` |
+| `bin` and `obj` | `*.csproj` or `*.sln` |
+| `Library` and `Temp` as Unity | `Assets` and `ProjectSettings` |
+| `_build` as Elixir | `mix.exs` |
 
-Chaque ligne affiche la commande qui regenere l'artefact.
+There is deliberately **no rule on directories named `models` or
+`checkpoints`**. In a Django or Rails application, `models/` holds source code.
+Model weights are detected by file extension instead, which is precise and
+cannot produce that false positive.
 
-## Etats .gitignore
+## Risk levels
 
-Le resume est visible sur l'en-tete d'un projet sans avoir a le deplier, avec le
-nombre d'artefacts par etat.
+| Level | Meaning | Examples |
+|---|---|---|
+| **Safe** | Pure build artifact, regenerated by a command | `node_modules`, `target`, `__pycache__`, `.next`, `venv`, `Pods`, `DerivedData` |
+| **Review** | Usually generated, but may hold sources depending on the project | `dist`, `build`, `out`, Go `vendor`, `.idea`, `logs` |
+| **Data** | Re-downloadable payload, the only loss is bandwidth | `*.safetensors`, `*.gguf`, `.cache/huggingface`, `wandb` |
 
-| Etat | Signification |
+Every row shows the command that regenerates the artifact.
+
+## .gitignore coverage
+
+The summary sits on the project header, readable without expanding anything,
+with a count per state.
+
+| State | Meaning |
 |---|---|
-| **Ignore** | Toutes les occurrences sont couvertes. |
-| **Partiel** | Une partie seulement est couverte. |
-| **Non ignore** | Aucune occurrence n'est couverte. |
-| **Deja versionne** | Les chemins sont dans l'index git. Tant qu'ils y restent, aucun motif `.gitignore` ne s'applique: il faut d'abord `git rm -r --cached <chemin>`. |
-| **Hors git** | Le projet n'est pas un depot. |
+| **Ignored** | Every occurrence is covered |
+| **Partial** | Only some occurrences are covered |
+| **Not ignored** | No occurrence is covered |
+| **Already committed** | The paths are in the git index |
+| **Not a repo** | The project is not a git repository |
 
-Le bouton **Corriger le .gitignore**, present sur l'en-tete des projets
-concernes, ajoute les motifs manquants sous une section datee sans toucher au
-reste du fichier. Les projets hors git sont sautes et signales.
+**Already committed** exists because git never reports a tracked file as
+ignored. On a repository that committed `node_modules`, adding the pattern
+changes nothing until `git rm -r --cached` runs. Without a distinct state, the
+fix button would look like it did nothing.
 
-## Conserver les .exe
+**Fix .gitignore**, shown on the headers that need it, appends the missing
+patterns under a dated section without touching the rest of the file. Projects
+that are not repositories are skipped and reported.
 
-L'option de la barre d'outils change la suppression: au lieu d'effacer
-l'arborescence, Ferrite la vide fichier par fichier en laissant les `*.exe` en
-place, ainsi que les seuls dossiers necessaires pour y acceder. Un `target/`
-nettoye conserve donc ses binaires compiles et perd tout le reste.
+## Keeping your .exe files
 
-## Garde-fous
+The toolbar toggle changes how deletion works. Instead of erasing the tree,
+Ferrite empties it file by file, leaving every `*.exe` in place along with only
+the directories needed to reach them.
 
-- L'API n'accepte que les chemins issus du scan courant, indexes par projet et
-  par regle. Une selection forgee est rejetee.
-- Un chemin hors du workspace scanne, la racine du workspace, la racine d'un
-  projet et tout `.git` sont refuses.
-- La confirmation detaille le volume et le nombre de projets touches, avec un
-  avertissement distinct pour les elements versionnes et pour les donnees.
-- La suppression leve l'attribut lecture seule et gere les chemins longs
-  Windows via le prefixe `\\?\`.
+A cleaned `target/` therefore keeps its compiled binaries and loses everything
+else. Measured on a test tree: 146 090 bytes removed, 3 executables preserved,
+`target/debug/` and `target/release/` kept solely to hold them.
+
+## Safety
+
+- Deletion targets resolve only through the scan index, which maps
+  `(project, rule, relative path)` to an absolute path. The client selects
+  entries from that index and never supplies a path, so a forged request is
+  inert.
+- Paths outside the scanned workspace, the workspace root, project roots, and
+  anything under `.git` are refused.
+- Confirmation states the volume and the number of projects touched, with
+  separate warnings for committed files and for data payloads.
+- Deletion clears the read only attribute and handles long Windows paths
+  through the `\\?\` prefix.
 
 ## Internationalisation
 
-Toutes les chaines visibles vivent dans `assets/locales/*.json`, servies au
-front par `/api/i18n/<lang>` et lues par le back via `i18n::t()`. Ajouter une
-langue tient en un fichier depose dans `assets/locales/` et declare dans
-`src/i18n.rs`.
+Every user facing string lives in `assets/locales/*.json`, served to the front
+end by `/api/i18n/<lang>` and read by the backend through `i18n::t()`. French
+and English ship in the box. Adding a language means dropping a file into
+`assets/locales/` and declaring it in `src/i18n.rs`.
 
 ```
 python tools/check_i18n.py
 ```
 
-verifie que les catalogues restent alignes, que chacune des 120 regles a une
-description dans chaque langue, et qu'aucune cle referencee par le template ou
-le script front n'est absente. Les cles assemblees a l'execution, du type
-`ignore.tip_` suivi d'un statut, sont controlees explicitement.
+verifies that catalogues stay aligned, that each of the 120 rules has a
+description in every language, and that no key referenced by the template or
+the front end script is missing. It runs in CI and fails the build.
 
-## Icone
+## Architecture
 
 ```
-python tools/make_icon.py
+src/main.rs      tao window, wry webview, server startup
+src/server.rs    state, scan jobs, HTTP routes
+src/scanner.rs   traversal, sizing, git calls, deletion
+src/catalog.rs   the 120 detection rules
+src/report.rs    result shaping and the deletion index
+src/i18n.rs      embedded language catalogues
+assets/          index.html, style.css, app.js, locales, icons
+tools/           icon generation, i18n coverage check
 ```
 
-Regenere `icon.ico`, les PNG de l'interface et le RGBA brut de l'icone de
-fenetre a partir d'un seul dessin.
+The window comes from `tao` and `wry`, the layer Tauri itself is built on, used
+without the framework. That keeps a single executable and no JavaScript
+toolchain. Rendering goes through WebView2.
+
+Three dependencies: `tiny_http`, `serde_json`, and the `tao` plus `wry` pair.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). Adding a detection rule is a one line
+change in `src/catalog.rs` plus a description in each locale.
+
+## License
+
+MIT. See [LICENSE](LICENSE).

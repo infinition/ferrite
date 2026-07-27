@@ -1,8 +1,8 @@
-//! Catalogues de traduction embarques dans le binaire.
+//! Translation catalogues embedded in the binary.
 //!
-//! Les memes fichiers alimentent le backend, pour les messages d'erreur, et le
-//! frontend, servi par `/api/i18n/<lang>`. Il n'y a donc qu'une source de
-//! verite par langue.
+//! The same files feed the backend, for error messages, and the frontend,
+//! served by `/api/i18n/<lang>`. There is therefore a single source of truth
+//! per language.
 
 use std::collections::HashMap;
 use std::sync::OnceLock;
@@ -26,10 +26,19 @@ fn catalogs() -> &'static HashMap<&'static str, Value> {
     })
 }
 
+/// Normalises a requested language code to an available locale.
 pub fn resolve(lang: Option<&str>) -> &'static str {
     let requested = lang.unwrap_or(DEFAULT_LANG);
-    let base = requested.split(['-', ',']).next().unwrap_or(DEFAULT_LANG).trim();
-    catalogs().keys().find(|code| **code == base).copied().unwrap_or(DEFAULT_LANG)
+    let base = requested
+        .split(['-', ','])
+        .next()
+        .unwrap_or(DEFAULT_LANG)
+        .trim();
+    catalogs()
+        .keys()
+        .find(|code| **code == base)
+        .copied()
+        .unwrap_or(DEFAULT_LANG)
 }
 
 pub fn catalog(lang: &str) -> Value {
@@ -53,7 +62,7 @@ pub fn languages() -> Vec<(&'static str, String)> {
     list
 }
 
-/// Traduit une cle pointee, avec repli sur l'anglais puis sur la cle brute.
+/// Translates a dotted key, falling back to English then to the raw key.
 pub fn t(lang: &str, key: &str) -> String {
     for candidate in [lang, FALLBACK_LANG] {
         if let Some(value) = catalogs().get(candidate).and_then(|root| lookup(root, key)) {

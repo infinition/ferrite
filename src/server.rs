@@ -1,4 +1,4 @@
-//! Etat applicatif, jobs de scan et routage HTTP.
+//! Application state, scan jobs and HTTP routing.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -17,7 +17,7 @@ use crate::scanner;
 const JOB_TTL_SECONDS: u64 = 3600;
 
 // =====================================================================
-// Etat
+// State
 // =====================================================================
 
 pub struct Job {
@@ -56,7 +56,10 @@ impl Job {
 
         if include_projects {
             payload["projects"] = Value::Array(
-                self.projects.iter().map(|project| project.to_json()).collect(),
+                self.projects
+                    .iter()
+                    .map(|project| project.to_json())
+                    .collect(),
             );
         }
         payload
@@ -78,7 +81,10 @@ pub struct AppState {
 
 impl AppState {
     pub fn new() -> Self {
-        AppState { jobs: Mutex::new(HashMap::new()), counter: AtomicU64::new(0) }
+        AppState {
+            jobs: Mutex::new(HashMap::new()),
+            counter: AtomicU64::new(0),
+        }
     }
 
     fn next_id(&self) -> String {
@@ -127,7 +133,10 @@ fn start_scan(state: &Arc<AppState>, workspace: PathBuf, depth: usize) -> Value 
         cancel: cancel.clone(),
     }));
 
-    let payload = job.lock().map(|job| job.status_json(false)).unwrap_or(Value::Null);
+    let payload = job
+        .lock()
+        .map(|job| job.status_json(false))
+        .unwrap_or(Value::Null);
     let id = payload["id"].as_str().unwrap_or_default().to_string();
 
     if let Ok(mut jobs) = state.jobs.lock() {
@@ -163,8 +172,8 @@ fn run_scan(job: Arc<Mutex<Job>>, workspace: PathBuf, depth: usize, cancel: Arc<
                 .unwrap_or_default();
         }
 
-        // Le scan lui-meme se fait hors verrou: il dure, et l'interface doit
-        // pouvoir lire l'avancement pendant ce temps.
+        // The scan itself runs outside the lock: it takes time, and the
+        // interface has to keep reading progress meanwhile.
         let scan = match scanner::scan_project(path, &cancel) {
             Some(scan) => scan,
             None => {
@@ -212,10 +221,10 @@ struct Target {
     path: PathBuf,
 }
 
-/// Traduit la selection client en chemins absolus verifies.
+/// Turns the client selection into verified absolute paths.
 ///
-/// Seuls les chemins issus du scan courant sont acceptes: une selection forgee
-/// ne peut donc pas atteindre un fichier arbitraire du disque.
+/// Only paths produced by the current scan are accepted, so a forged selection
+/// cannot reach an arbitrary file on disk.
 fn resolve_selection(job: &Job, selections: &Value) -> Vec<Target> {
     let mut targets = Vec::new();
     let entries = match selections.as_array() {
@@ -232,7 +241,11 @@ fn resolve_selection(job: &Job, selections: &Value) -> Vec<Target> {
             Some(id) => id.to_string(),
             None => continue,
         };
-        let known = match job.index.get(&project_id).and_then(|index| index.get(&rule_id)) {
+        let known = match job
+            .index
+            .get(&project_id)
+            .and_then(|index| index.get(&rule_id))
+        {
             Some(known) => known,
             None => continue,
         };
@@ -243,12 +256,18 @@ fn resolve_selection(job: &Job, selections: &Value) -> Vec<Target> {
 
         let wanted: Option<Vec<String>> = entry.get("rels").and_then(|value| {
             value.as_array().map(|items| {
-                items.iter().filter_map(|v| v.as_str().map(str::to_string)).collect()
+                items
+                    .iter()
+                    .filter_map(|v| v.as_str().map(str::to_string))
+                    .collect()
             })
         });
 
         let rels: Vec<String> = match wanted {
-            Some(list) => list.into_iter().filter(|rel| known.contains_key(rel)).collect(),
+            Some(list) => list
+                .into_iter()
+                .filter(|rel| known.contains_key(rel))
+                .collect(),
             None => known.keys().cloned().collect(),
         };
 
@@ -287,7 +306,10 @@ fn keep_patterns(body: &Value) -> Vec<String> {
     body.get("keep")
         .and_then(|value| value.as_array())
         .map(|items| {
-            items.iter().filter_map(|v| v.as_str().map(str::to_string)).collect()
+            items
+                .iter()
+                .filter_map(|v| v.as_str().map(str::to_string))
+                .collect()
         })
         .unwrap_or_default()
 }
@@ -298,15 +320,25 @@ fn keep_patterns(body: &Value) -> Vec<String> {
 
 fn handle_scan(state: &Arc<AppState>, body: &Value) -> (u16, Value) {
     let lang = i18n::resolve(body.get("lang").and_then(|v| v.as_str()));
-    let raw = body.get("workspace").and_then(|v| v.as_str()).unwrap_or("").trim();
+    let raw = body
+        .get("workspace")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .trim();
 
     if raw.is_empty() {
-        return (400, json!({ "error": i18n::t(lang, "error.missing_workspace") }));
+        return (
+            400,
+            json!({ "error": i18n::t(lang, "error.missing_workspace") }),
+        );
     }
 
     let workspace = scanner::normalize_path(raw);
     if !workspace.is_dir() {
-        return (400, json!({ "error": i18n::t(lang, "error.not_a_directory") }));
+        return (
+            400,
+            json!({ "error": i18n::t(lang, "error.not_a_directory") }),
+        );
     }
 
     let depth = body
@@ -320,9 +352,18 @@ fn handle_scan(state: &Arc<AppState>, body: &Value) -> (u16, Value) {
 
 fn handle_clean(state: &Arc<AppState>, body: &Value) -> (u16, Value) {
     let lang = i18n::resolve(body.get("lang").and_then(|v| v.as_str()));
-    let job_handle = match body.get("job").and_then(|v| v.as_str()).and_then(|id| state.get(id)) {
+    let job_handle = match body
+        .get("job")
+        .and_then(|v| v.as_str())
+        .and_then(|id| state.get(id))
+    {
         Some(handle) => handle,
-        None => return (404, json!({ "error": i18n::t(lang, "error.job_not_found") })),
+        None => {
+            return (
+                404,
+                json!({ "error": i18n::t(lang, "error.job_not_found") }),
+            )
+        }
     };
 
     let keep = keep_patterns(body);
@@ -332,16 +373,24 @@ fn handle_clean(state: &Arc<AppState>, body: &Value) -> (u16, Value) {
     let targets = {
         let job = match job_handle.lock() {
             Ok(job) => job,
-            Err(_) => return (500, json!({ "error": i18n::t(lang, "error.invalid_selection") })),
+            Err(_) => {
+                return (
+                    500,
+                    json!({ "error": i18n::t(lang, "error.invalid_selection") }),
+                )
+            }
         };
         resolve_selection(&job, selections)
     };
 
     if targets.is_empty() {
-        return (400, json!({ "error": i18n::t(lang, "error.invalid_selection") }));
+        return (
+            400,
+            json!({ "error": i18n::t(lang, "error.invalid_selection") }),
+        );
     }
 
-    // La suppression se fait hors verrou: elle peut durer sur plusieurs Go.
+    // Deletion runs outside the lock: it can span several gigabytes.
     let mut removed = Vec::new();
     let mut failures = Vec::new();
     let mut freed = 0u64;
@@ -355,7 +404,12 @@ fn handle_clean(state: &Arc<AppState>, body: &Value) -> (u16, Value) {
         kept_files += outcome.kept_files;
 
         if outcome.ok {
-            removed.push((target.project, target.rule_id.clone(), target.rel.clone(), outcome.freed));
+            removed.push((
+                target.project,
+                target.rule_id.clone(),
+                target.rel.clone(),
+                outcome.freed,
+            ));
         } else {
             failures.push(json!({
                 "project": target.project,
@@ -365,8 +419,8 @@ fn handle_clean(state: &Arc<AppState>, body: &Value) -> (u16, Value) {
         }
     }
 
-    // Une occurrence qui conserve des fichiers reste presente: elle ne doit pas
-    // disparaitre du rapport, sinon on ne pourrait plus la revoir ni la vider.
+    // An occurrence that kept files is still on disk: it must stay in the
+    // report, otherwise it could never be reviewed or emptied again.
     let mut fully_removed: Vec<(usize, String, String, u64)> = Vec::new();
     for entry in &removed {
         let still_there = targets
@@ -382,7 +436,10 @@ fn handle_clean(state: &Arc<AppState>, body: &Value) -> (u16, Value) {
     if let Ok(mut job) = job_handle.lock() {
         let mut by_project: HashMap<usize, Vec<(String, String, u64)>> = HashMap::new();
         for (project, rule_id, rel, size) in &fully_removed {
-            by_project.entry(*project).or_default().push((rule_id.clone(), rel.clone(), *size));
+            by_project
+                .entry(*project)
+                .or_default()
+                .push((rule_id.clone(), rel.clone(), *size));
         }
         for (project_id, entries) in by_project {
             if let Some(index) = job.index.get_mut(&project_id) {
@@ -398,21 +455,33 @@ fn handle_clean(state: &Arc<AppState>, body: &Value) -> (u16, Value) {
         }
     }
 
-    (200, json!({
-        "ok": removed.len(),
-        "failed": failures.len(),
-        "freed": freed,
-        "kept_size": kept_size,
-        "kept_files": kept_files,
-        "failures": failures,
-    }))
+    (
+        200,
+        json!({
+            "ok": removed.len(),
+            "failed": failures.len(),
+            "freed": freed,
+            "kept_size": kept_size,
+            "kept_files": kept_files,
+            "failures": failures,
+        }),
+    )
 }
 
 fn handle_gitignore(state: &Arc<AppState>, body: &Value) -> (u16, Value) {
     let lang = i18n::resolve(body.get("lang").and_then(|v| v.as_str()));
-    let job_handle = match body.get("job").and_then(|v| v.as_str()).and_then(|id| state.get(id)) {
+    let job_handle = match body
+        .get("job")
+        .and_then(|v| v.as_str())
+        .and_then(|id| state.get(id))
+    {
         Some(handle) => handle,
-        None => return (404, json!({ "error": i18n::t(lang, "error.job_not_found") })),
+        None => {
+            return (
+                404,
+                json!({ "error": i18n::t(lang, "error.job_not_found") }),
+            )
+        }
     };
 
     let mut wanted: HashMap<usize, Vec<String>> = HashMap::new();
@@ -437,7 +506,12 @@ fn handle_gitignore(state: &Arc<AppState>, body: &Value) -> (u16, Value) {
 
     let mut job = match job_handle.lock() {
         Ok(job) => job,
-        Err(_) => return (500, json!({ "error": i18n::t(lang, "error.invalid_selection") })),
+        Err(_) => {
+            return (
+                500,
+                json!({ "error": i18n::t(lang, "error.invalid_selection") }),
+            )
+        }
     };
 
     let mut added_total = 0usize;
@@ -469,20 +543,28 @@ fn handle_gitignore(state: &Arc<AppState>, body: &Value) -> (u16, Value) {
         updates.push(json!({ "project": project_id, "added": added, "statuses": statuses }));
     }
 
-    (200, json!({
-        "added": added_total,
-        "repos": touched,
-        "skipped": skipped,
-        "updates": updates,
-    }))
+    (
+        200,
+        json!({
+            "added": added_total,
+            "repos": touched,
+            "skipped": skipped,
+            "updates": updates,
+        }),
+    )
 }
 
-/// Recalcule la couverture .gitignore d'un projet apres ecriture.
+/// Recomputes a project's .gitignore coverage after writing to the file.
 fn refresh_ignore_status(job: &mut Job, project_id: usize, path: &Path) -> Vec<Value> {
     let rel_paths: Vec<String> = job
         .index
         .get(&project_id)
-        .map(|index| index.values().flat_map(|known| known.keys().cloned()).collect())
+        .map(|index| {
+            index
+                .values()
+                .flat_map(|known| known.keys().cloned())
+                .collect()
+        })
         .unwrap_or_default();
 
     if rel_paths.is_empty() {
@@ -494,14 +576,20 @@ fn refresh_ignore_status(job: &mut Job, project_id: usize, path: &Path) -> Vec<V
         .index
         .get(&project_id)
         .map(|index| {
-            index.iter().map(|(rule, known)| (rule.clone(), known.keys().cloned().collect())).collect()
+            index
+                .iter()
+                .map(|(rule, known)| (rule.clone(), known.keys().cloned().collect()))
+                .collect()
         })
         .unwrap_or_default();
 
     let mut statuses = Vec::new();
     if let Some(project) = job.project_mut(project_id) {
         for item in project.items.iter_mut() {
-            let rels = known_by_rule.get(&item.rule_id).cloned().unwrap_or_default();
+            let rels = known_by_rule
+                .get(&item.rule_id)
+                .cloned()
+                .unwrap_or_default();
             let hits = rels.iter().filter(|rel| ignored.contains(*rel)).count();
             let status = scanner::ignore_status(hits, item.tracked_count, rels.len());
             item.ignore_status = status.to_string();
@@ -517,24 +605,48 @@ fn refresh_ignore_status(job: &mut Job, project_id: usize, path: &Path) -> Vec<V
 
 fn handle_gitgc(state: &Arc<AppState>, body: &Value) -> (u16, Value) {
     let lang = i18n::resolve(body.get("lang").and_then(|v| v.as_str()));
-    let job_handle = match body.get("job").and_then(|v| v.as_str()).and_then(|id| state.get(id)) {
+    let job_handle = match body
+        .get("job")
+        .and_then(|v| v.as_str())
+        .and_then(|id| state.get(id))
+    {
         Some(handle) => handle,
-        None => return (404, json!({ "error": i18n::t(lang, "error.job_not_found") })),
+        None => {
+            return (
+                404,
+                json!({ "error": i18n::t(lang, "error.job_not_found") }),
+            )
+        }
     };
 
     let project_id = match body.get("project").and_then(|v| v.as_u64()) {
         Some(id) => id as usize,
-        None => return (400, json!({ "error": i18n::t(lang, "error.invalid_selection") })),
+        None => {
+            return (
+                400,
+                json!({ "error": i18n::t(lang, "error.invalid_selection") }),
+            )
+        }
     };
 
     let (path, is_git) = {
         let job = match job_handle.lock() {
             Ok(job) => job,
-            Err(_) => return (500, json!({ "error": i18n::t(lang, "error.invalid_selection") })),
+            Err(_) => {
+                return (
+                    500,
+                    json!({ "error": i18n::t(lang, "error.invalid_selection") }),
+                )
+            }
         };
         match job.projects.iter().find(|p| p.id == project_id) {
             Some(project) => (project.path.clone(), project.is_git),
-            None => return (400, json!({ "error": i18n::t(lang, "error.invalid_selection") })),
+            None => {
+                return (
+                    400,
+                    json!({ "error": i18n::t(lang, "error.invalid_selection") }),
+                )
+            }
         }
     };
 
@@ -553,17 +665,20 @@ fn handle_gitgc(state: &Arc<AppState>, body: &Value) -> (u16, Value) {
         }
     }
 
-    (200, json!({
-        "ok": outcome.ok,
-        "before": outcome.before,
-        "after": outcome.after,
-        "freed": outcome.freed,
-        "error": outcome.error,
-    }))
+    (
+        200,
+        json!({
+            "ok": outcome.ok,
+            "before": outcome.before,
+            "after": outcome.after,
+            "freed": outcome.freed,
+            "error": outcome.error,
+        }),
+    )
 }
 
 // =====================================================================
-// Assets embarques
+// Embedded assets
 // =====================================================================
 
 const INDEX_HTML: &str = include_str!("../assets/index.html");
@@ -573,7 +688,7 @@ const ICON_32: &[u8] = include_bytes!("../assets/icon-32.png");
 const ICON_180: &[u8] = include_bytes!("../assets/icon-180.png");
 
 fn header(name: &str, value: &str) -> Header {
-    Header::from_bytes(name.as_bytes(), value.as_bytes()).expect("en-tete valide")
+    Header::from_bytes(name.as_bytes(), value.as_bytes()).expect("valid header")
 }
 
 fn respond(request: Request, status: u16, body: Vec<u8>, content_type: &str) {
@@ -585,20 +700,28 @@ fn respond(request: Request, status: u16, body: Vec<u8>, content_type: &str) {
 }
 
 fn respond_json(request: Request, status: u16, value: &Value) {
-    respond(request, status, value.to_string().into_bytes(), "application/json; charset=utf-8");
+    respond(
+        request,
+        status,
+        value.to_string().into_bytes(),
+        "application/json; charset=utf-8",
+    );
 }
 
 // =====================================================================
-// Routage
+// Routing
 // =====================================================================
 
 pub fn handle_request(state: Arc<AppState>, mut request: Request) {
     let url = request.url().to_string();
     let path = url.split('?').next().unwrap_or("/").to_string();
-    let query = url.split_once('?').map(|(_, q)| q.to_string()).unwrap_or_default();
+    let query = url
+        .split_once('?')
+        .map(|(_, q)| q.to_string())
+        .unwrap_or_default();
     let is_post = request.method().as_str() == "POST";
 
-    // Corps de requete lu avant tout, tiny_http exige un emprunt exclusif.
+    // The body is read first: tiny_http needs an exclusive borrow for it.
     let mut body_text = String::new();
     if is_post {
         let _ = request.as_reader().read_to_string(&mut body_text);
@@ -606,13 +729,24 @@ pub fn handle_request(state: Arc<AppState>, mut request: Request) {
     let body: Value = serde_json::from_str(&body_text).unwrap_or(Value::Null);
 
     match (is_post, path.as_str()) {
-        (false, "/") => respond(request, 200, INDEX_HTML.as_bytes().to_vec(), "text/html; charset=utf-8"),
-        (false, "/static/style.css") => {
-            respond(request, 200, STYLE_CSS.as_bytes().to_vec(), "text/css; charset=utf-8")
-        }
-        (false, "/static/app.js") => {
-            respond(request, 200, APP_JS.as_bytes().to_vec(), "text/javascript; charset=utf-8")
-        }
+        (false, "/") => respond(
+            request,
+            200,
+            INDEX_HTML.as_bytes().to_vec(),
+            "text/html; charset=utf-8",
+        ),
+        (false, "/static/style.css") => respond(
+            request,
+            200,
+            STYLE_CSS.as_bytes().to_vec(),
+            "text/css; charset=utf-8",
+        ),
+        (false, "/static/app.js") => respond(
+            request,
+            200,
+            APP_JS.as_bytes().to_vec(),
+            "text/javascript; charset=utf-8",
+        ),
         (false, "/favicon.ico") | (false, "/static/icon-32.png") => {
             respond(request, 200, ICON_32.to_vec(), "image/png")
         }
@@ -623,10 +757,14 @@ pub fn handle_request(state: Arc<AppState>, mut request: Request) {
                 .into_iter()
                 .map(|(code, label)| json!({ "code": code, "label": label }))
                 .collect();
-            respond_json(request, 200, &json!({
-                "languages": languages,
-                "default": i18n::DEFAULT_LANG,
-            }));
+            respond_json(
+                request,
+                200,
+                &json!({
+                    "languages": languages,
+                    "default": i18n::DEFAULT_LANG,
+                }),
+            );
         }
 
         (false, _) if path.starts_with("/api/i18n/") => {
@@ -640,7 +778,9 @@ pub fn handle_request(state: Arc<AppState>, mut request: Request) {
         }
 
         (true, _) if path.starts_with("/api/scan/") && path.ends_with("/cancel") => {
-            let id = path.trim_start_matches("/api/scan/").trim_end_matches("/cancel");
+            let id = path
+                .trim_start_matches("/api/scan/")
+                .trim_end_matches("/cancel");
             match state.get(id) {
                 Some(job) => {
                     if let Ok(job) = job.lock() {
@@ -650,9 +790,13 @@ pub fn handle_request(state: Arc<AppState>, mut request: Request) {
                 }
                 None => {
                     let lang = i18n::resolve(query_lang(&query));
-                    respond_json(request, 404, &json!({
-                        "error": i18n::t(lang, "error.job_not_found")
-                    }));
+                    respond_json(
+                        request,
+                        404,
+                        &json!({
+                            "error": i18n::t(lang, "error.job_not_found")
+                        }),
+                    );
                 }
             }
         }
@@ -668,9 +812,13 @@ pub fn handle_request(state: Arc<AppState>, mut request: Request) {
                     }
                     Err(_) => respond_json(request, 500, &json!({ "error": "lock" })),
                 },
-                None => respond_json(request, 404, &json!({
-                    "error": i18n::t(lang, "error.job_not_found")
-                })),
+                None => respond_json(
+                    request,
+                    404,
+                    &json!({
+                        "error": i18n::t(lang, "error.job_not_found")
+                    }),
+                ),
             }
         }
 
@@ -692,7 +840,5 @@ pub fn handle_request(state: Arc<AppState>, mut request: Request) {
 }
 
 fn query_lang(query: &str) -> Option<&str> {
-    query
-        .split('&')
-        .find_map(|pair| pair.strip_prefix("lang="))
+    query.split('&').find_map(|pair| pair.strip_prefix("lang="))
 }

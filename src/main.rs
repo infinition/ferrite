@@ -1,11 +1,10 @@
-//! Ferrite: inventaire et nettoyage des artefacts regenerables d'un workspace.
+//! Ferrite: inventories and cleans the regenerable artifacts of a workspace.
 //!
-//! Application de bureau: une fenetre native affiche l'interface via WebView2,
-//! alimentee par un serveur HTTP local lie a la boucle d'evenements. Tout est
-//! embarque dans un seul executable, il n'y a rien a installer.
+//! Desktop application: a native window renders the interface through WebView2,
+//! backed by a local HTTP server. Everything ships inside a single executable,
+//! there is nothing to install.
 
-// En release, pas de console derriere la fenetre. En debug, on la garde pour
-// voir les traces.
+// No console behind the window in release. Kept in debug to read traces.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod catalog;
@@ -32,20 +31,24 @@ fn main() {
     let server = match bind(options.port) {
         Some(server) => server,
         None => {
-            fatal("aucun port disponible pour l'interface locale");
+            fatal("no port available for the local interface");
             return;
         }
     };
 
-    let port = server.server_addr().to_ip().map(|addr| addr.port()).unwrap_or(options.port);
+    let port = server
+        .server_addr()
+        .to_ip()
+        .map(|addr| addr.port())
+        .unwrap_or(options.port);
     let url = format!("http://127.0.0.1:{port}");
 
     let state = Arc::new(server::AppState::new());
     std::thread::spawn(move || {
         for request in server.incoming_requests() {
             let state = state.clone();
-            // Un thread par requete: le nettoyage peut durer plusieurs minutes
-            // et ne doit pas figer le suivi d'avancement.
+            // One thread per request: cleaning can run for minutes and must
+            // not freeze progress reporting.
             std::thread::spawn(move || server::handle_request(state, request));
         }
     });
@@ -53,9 +56,9 @@ fn main() {
     if options.headless {
         println!();
         println!("  Ferrite {}", env!("CARGO_PKG_VERSION"));
-        println!("  {} regles de detection", catalog::RULES.len());
+        println!("  {} detection rules loaded", catalog::RULES.len());
         println!("  Interface: {url}");
-        println!("  Ctrl+C pour arreter");
+        println!("  Ctrl+C to stop");
         println!();
         loop {
             std::thread::park();
@@ -65,13 +68,13 @@ fn main() {
     run_window(&url);
 }
 
-/// Ouvre le serveur local sur un port stable.
+/// Opens the local server on a stable port.
 ///
-/// L'interface memorise ses preferences dans le stockage local du navigateur,
-/// qui est indexe par origine: un port different a chaque lancement effacerait
-/// la langue, le dernier workspace et les options. On garde donc le port par
-/// defaut tant qu'il est libre, et on ne glisse vers un port voisin que si une
-/// autre instance occupe deja la place.
+/// The interface stores its preferences in browser local storage, which is
+/// keyed by origin: a different port on every launch would wipe the language,
+/// the last workspace and the options. So the default port is kept while it is
+/// free, and a neighbouring port is only used when another instance already
+/// holds it.
 fn bind(requested: u16) -> Option<tiny_http::Server> {
     if requested != 0 {
         return tiny_http::Server::http(("127.0.0.1", requested)).ok();
@@ -98,26 +101,31 @@ fn run_window(url: &str) {
     let window = match window {
         Ok(window) => window,
         Err(error) => {
-            fatal(&format!("fenetre impossible a creer ({error})"));
+            fatal(&format!("could not create the window ({error})"));
             return;
         }
     };
 
     let webview = WebViewBuilder::new()
         .with_url(url)
-        // Meme fond que la feuille de style: evite un flash blanc a l'ouverture.
+        // Same background as the stylesheet, so there is no white flash while
+        // the page loads.
         .with_background_color((23, 25, 29, 255))
         .build(&window);
 
     if let Err(error) = webview {
-        fatal(&format!("WebView2 indisponible ({error})"));
+        fatal(&format!("WebView2 is unavailable ({error})"));
         return;
     }
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
 
-        if let Event::WindowEvent { event: WindowEvent::CloseRequested, .. } = event {
+        if let Event::WindowEvent {
+            event: WindowEvent::CloseRequested,
+            ..
+        } = event
+        {
             *control_flow = ControlFlow::Exit;
         }
     });
@@ -135,7 +143,10 @@ struct Options {
 impl Options {
     fn from_args() -> Self {
         let args: Vec<String> = std::env::args().skip(1).collect();
-        let mut options = Options { port: 0, headless: false };
+        let mut options = Options {
+            port: 0,
+            headless: false,
+        };
 
         let mut index = 0;
         while index < args.len() {
@@ -152,8 +163,8 @@ impl Options {
                 }
                 "--help" | "-h" => {
                     println!("Ferrite {}", env!("CARGO_PKG_VERSION"));
-                    println!("  --port <n>   port d'ecoute (defaut {DEFAULT_PORT})");
-                    println!("  --headless   pas de fenetre, interface servie au navigateur");
+                    println!("  --port <n>   listening port (default {DEFAULT_PORT})");
+                    println!("  --headless   no window, interface served to the browser");
                     std::process::exit(0);
                 }
                 _ => index += 1,
@@ -163,8 +174,8 @@ impl Options {
     }
 }
 
-/// Signale une erreur bloquante. Sans console attachee, une boite de dialogue
-/// est le seul canal visible pour l'utilisateur.
+/// Reports a fatal error. With no console attached, a dialog box is the only
+/// channel the user can actually see.
 fn fatal(message: &str) {
     eprintln!("  Ferrite: {message}");
 

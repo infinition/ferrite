@@ -1,5 +1,4 @@
-//! Parcours du workspace, mesure des volumes, interrogation de git et
-//! suppression selective.
+//! Workspace traversal, size measurement, git queries and selective deletion.
 
 use std::collections::{HashMap, HashSet};
 use std::fs;
@@ -14,7 +13,7 @@ pub const MAX_OCCURRENCES_SENT: usize = 150;
 const GIT_BATCH: usize = 1500;
 
 // =====================================================================
-// Chemins
+// Paths
 // =====================================================================
 
 pub fn normalize_path(raw: &str) -> PathBuf {
@@ -29,13 +28,11 @@ pub fn normalize_path(raw: &str) -> PathBuf {
     };
 
     let path = PathBuf::from(expanded);
-    fs::canonicalize(&path)
-        .map(strip_verbatim)
-        .unwrap_or(path)
+    fs::canonicalize(&path).map(strip_verbatim).unwrap_or(path)
 }
 
-/// Retire le prefixe `\\?\` que renvoie `canonicalize` sur Windows, illisible
-/// dans l'interface et refuse par certains outils.
+/// Strips the `\\?\` prefix returned by `canonicalize` on Windows: it reads
+/// badly in the interface and some tools reject it.
 fn strip_verbatim(path: PathBuf) -> PathBuf {
     let text = path.to_string_lossy().to_string();
     match text.strip_prefix(r"\\?\") {
@@ -44,15 +41,15 @@ fn strip_verbatim(path: PathBuf) -> PathBuf {
     }
 }
 
-/// Prefixe Windows permettant de depasser la limite historique de 260 caracteres.
+/// Windows prefix that lifts the historical 260 character path limit.
 #[cfg(windows)]
 fn long_path(path: &Path) -> PathBuf {
     let text = path.to_string_lossy().to_string();
     if text.starts_with(r"\\?\") {
         return path.to_path_buf();
     }
-    if text.starts_with(r"\\") {
-        return PathBuf::from(format!(r"\\?\UNC\{}", &text[2..]));
+    if let Some(share) = text.strip_prefix(r"\\") {
+        return PathBuf::from(format!(r"\\?\UNC\{share}"));
     }
     PathBuf::from(format!(r"\\?\{text}"))
 }
@@ -62,7 +59,7 @@ fn long_path(path: &Path) -> PathBuf {
     path.to_path_buf()
 }
 
-/// Taille cumulee et nombre de fichiers d'une arborescence.
+/// Total size and file count of a directory tree.
 pub fn dir_stats(root: &Path) -> (u64, u64) {
     let mut total = 0u64;
     let mut count = 0u64;
@@ -102,7 +99,7 @@ fn git_command(repo: &Path) -> Command {
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
-        // Evite qu'une fenetre console clignote a chaque appel.
+        // Keeps a console window from flashing on every call.
         command.creation_flags(0x0800_0000);
     }
     command
@@ -110,8 +107,15 @@ fn git_command(repo: &Path) -> Command {
 
 pub fn run_git(repo: &Path, args: &[&str], stdin_data: Option<Vec<u8>>) -> (bool, Vec<u8>, String) {
     let mut command = git_command(repo);
-    command.args(args).stdout(Stdio::piped()).stderr(Stdio::piped());
-    command.stdin(if stdin_data.is_some() { Stdio::piped() } else { Stdio::null() });
+    command
+        .args(args)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    command.stdin(if stdin_data.is_some() {
+        Stdio::piped()
+    } else {
+        Stdio::null()
+    });
 
     let mut child = match command.spawn() {
         Ok(child) => child,
@@ -120,8 +124,8 @@ pub fn run_git(repo: &Path, args: &[&str], stdin_data: Option<Vec<u8>>) -> (bool
 
     if let Some(payload) = stdin_data {
         if let Some(mut stdin) = child.stdin.take() {
-            // L'ecriture part dans un thread: sur un gros lot, git peut remplir
-            // son tampon de sortie avant d'avoir tout lu, ce qui bloquerait.
+            // Write from a thread: on a large batch git can fill its output
+            // buffer before it has read everything, which would deadlock.
             std::thread::spawn(move || {
                 let _ = stdin.write_all(&payload);
             });
@@ -152,7 +156,7 @@ pub fn git_branch(repo: &Path) -> String {
     }
 }
 
-/// Sous-ensemble des chemins couvert par un .gitignore.
+/// Subset of the given paths covered by a .gitignore.
 pub fn git_ignored_set(repo: &Path, rel_paths: &[String]) -> HashSet<String> {
     let mut ignored = HashSet::new();
 
@@ -172,7 +176,7 @@ pub fn git_ignored_set(repo: &Path, rel_paths: &[String]) -> HashSet<String> {
     ignored
 }
 
-/// Chemins contenant au moins un fichier suivi par git.
+/// Paths holding at least one file tracked by git.
 pub fn git_tracked_set(repo: &Path, rel_paths: &[String]) -> HashSet<String> {
     let mut tracked = HashSet::new();
 
@@ -194,7 +198,10 @@ pub fn git_tracked_set(repo: &Path, rel_paths: &[String]) -> HashSet<String> {
         }
         for candidate in chunk {
             let prefix = format!("{}/", candidate.trim_end_matches('/'));
-            if found.iter().any(|f| f == candidate || f.starts_with(&prefix)) {
+            if found
+                .iter()
+                .any(|f| f == candidate || f.starts_with(&prefix))
+            {
                 tracked.insert(candidate.clone());
             }
         }
@@ -225,13 +232,15 @@ pub fn git_gc(repo: &Path) -> GcOutcome {
 }
 
 // =====================================================================
-// Decouverte des projets
+// Project discovery
 // =====================================================================
 
 fn looks_like_project(names: &HashSet<String>) -> bool {
     catalog::PROJECT_MARKERS.iter().any(|marker| {
         if marker.contains('*') {
-            names.iter().any(|name| catalog::wildcard_match(marker, name))
+            names
+                .iter()
+                .any(|name| catalog::wildcard_match(marker, name))
         } else {
             names.contains(*marker)
         }
@@ -240,12 +249,23 @@ fn looks_like_project(names: &HashSet<String>) -> bool {
 
 fn child_names(path: &Path) -> Option<HashSet<String>> {
     let entries = fs::read_dir(path).ok()?;
-    Some(entries.flatten().map(|e| e.file_name().to_string_lossy().to_string()).collect())
+    Some(
+        entries
+            .flatten()
+            .map(|e| e.file_name().to_string_lossy().to_string())
+            .collect(),
+    )
 }
 
-const SKIP_DIRS: &[&str] = &[".git", "node_modules", "$RECYCLE.BIN", "System Volume Information"];
+const SKIP_DIRS: &[&str] = &[
+    ".git",
+    "node_modules",
+    "$RECYCLE.BIN",
+    "System Volume Information",
+];
 
-/// Dossiers a analyser. Un projet identifie n'est pas explore plus profond.
+/// Directories to analyse. A directory recognised as a project is not searched
+/// any deeper for nested projects.
 pub fn discover_projects(workspace: &Path, max_depth: usize) -> Vec<PathBuf> {
     let mut projects = Vec::new();
     let mut queue = vec![(workspace.to_path_buf(), 0usize)];
@@ -287,7 +307,7 @@ pub fn discover_projects(workspace: &Path, max_depth: usize) -> Vec<PathBuf> {
 }
 
 // =====================================================================
-// Scan d'un projet
+// Project scan
 // =====================================================================
 
 pub struct Occurrence {
@@ -323,7 +343,10 @@ pub fn scan_project(root: &Path, cancel: &AtomicBool) -> Option<ProjectScan> {
     let mut total_files = 0u64;
     let mut git_size = 0u64;
 
-    let root_name = root.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+    let root_name = root
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_default();
     let mut stack = vec![(root.to_path_buf(), root_name)];
 
     while let Some((current, current_name)) = stack.pop() {
@@ -404,8 +427,8 @@ pub fn scan_project(root: &Path, cancel: &AtomicBool) -> Option<ProjectScan> {
                         tracked: false,
                     });
 
-                    // Un artefact identifie n'est pas explore: cela evite de
-                    // compter deux fois et accelere nettement le parcours.
+                    // A recognised artifact is not descended into: that avoids
+                    // double counting and speeds the walk up considerably.
                 }
                 None => {
                     if is_dir {
@@ -419,14 +442,19 @@ pub fn scan_project(root: &Path, cancel: &AtomicBool) -> Option<ProjectScan> {
         }
     }
 
-    Some(ProjectScan { buckets, total_size, total_files, git_size })
+    Some(ProjectScan {
+        buckets,
+        total_size,
+        total_files,
+        git_size,
+    })
 }
 
-/// Etat de couverture .gitignore d'un artefact.
+/// .gitignore coverage state of an artifact.
 ///
-/// Git ne declare jamais ignore un fichier deja suivi: tant qu'il est dans
-/// l'index, un motif ajoute au .gitignore reste sans effet. Ce cas merite son
-/// propre etat, sinon l'ajout du motif semble ne rien changer.
+/// Git never reports a tracked file as ignored: while it sits in the index, a
+/// pattern added to .gitignore has no effect. That case deserves its own
+/// state, otherwise adding the pattern looks like it did nothing.
 pub fn ignore_status(ignored: usize, tracked: usize, total: usize) -> &'static str {
     if total == 0 {
         "na"
@@ -471,7 +499,7 @@ pub fn annotate_git(root: &Path, buckets: &mut [Bucket]) {
 }
 
 // =====================================================================
-// Suppression
+// Deletion
 // =====================================================================
 
 pub struct DeleteOutcome {
@@ -484,16 +512,29 @@ pub struct DeleteOutcome {
 
 impl DeleteOutcome {
     fn success() -> Self {
-        DeleteOutcome { ok: true, freed: 0, kept_size: 0, kept_files: 0, error: String::new() }
+        DeleteOutcome {
+            ok: true,
+            freed: 0,
+            kept_size: 0,
+            kept_files: 0,
+            error: String::new(),
+        }
     }
 
     fn failure(error: String) -> Self {
-        DeleteOutcome { ok: false, freed: 0, kept_size: 0, kept_files: 0, error }
+        DeleteOutcome {
+            ok: false,
+            freed: 0,
+            kept_size: 0,
+            kept_files: 0,
+            error,
+        }
     }
 }
 
 fn matches_keep(name: &str, keep: &[String]) -> bool {
-    keep.iter().any(|pattern| catalog::wildcard_match(pattern, name))
+    keep.iter()
+        .any(|pattern| catalog::wildcard_match(pattern, name))
 }
 
 fn clear_readonly(path: &Path) {
@@ -517,28 +558,28 @@ fn remove_dir_all(path: &Path) -> Result<(), String> {
     if fs::remove_dir_all(long_path(path)).is_ok() {
         return Ok(());
     }
-    // Deuxieme passe: certains fichiers portent l'attribut lecture seule, que
-    // `remove_dir_all` ne leve pas de lui-meme sur Windows.
+    // Second pass: some files carry the read only attribute, which
+    // `remove_dir_all` does not clear by itself on Windows.
     let (freed, _, _) = selective_rmtree(path, &[]);
     let _ = freed;
     if path.exists() {
-        Err("suppression incomplete".to_string())
+        Err("incomplete deletion".to_string())
     } else {
         Ok(())
     }
 }
 
-/// Vide une arborescence en preservant les fichiers a conserver.
+/// Empties a directory tree while preserving the files to keep.
 ///
-/// Le parcours est ascendant: un dossier n'est retire qu'apres son contenu, et
-/// seulement s'il finit vide. Un dossier qui garde un fichier survit avec ce
-/// seul fichier.
+/// The walk is bottom up: a directory is removed only after its contents, and
+/// only if it ends up empty. A directory that keeps a file survives holding
+/// just that file.
 fn selective_rmtree(root: &Path, keep: &[String]) -> (u64, u64, u64) {
     let mut freed = 0u64;
     let mut kept_size = 0u64;
     let mut kept_files = 0u64;
 
-    // Collecte des dossiers en profondeur d'abord, pour les traiter a l'envers.
+    // Collect directories breadth first, then process them in reverse.
     let mut directories = vec![root.to_path_buf()];
     let mut cursor = 0usize;
     while cursor < directories.len() {
@@ -583,6 +624,10 @@ fn selective_rmtree(root: &Path, keep: &[String]) -> (u64, u64, u64) {
     (freed, kept_size, kept_files)
 }
 
+/// Deletes a file or a directory.
+///
+/// `keep` preserves files whose name matches one of the patterns, along with
+/// the directories needed to reach them.
 pub fn delete_path(path: &Path, keep: &[String]) -> DeleteOutcome {
     if !path.exists() {
         return DeleteOutcome::success();
@@ -591,7 +636,10 @@ pub fn delete_path(path: &Path, keep: &[String]) -> DeleteOutcome {
     let is_dir = path.is_dir();
 
     if !is_dir {
-        let name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+        let name = path
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_default();
         let size = fs::metadata(path).map(|m| m.len()).unwrap_or(0);
 
         if !keep.is_empty() && matches_keep(&name, keep) {
@@ -605,7 +653,7 @@ pub fn delete_path(path: &Path, keep: &[String]) -> DeleteOutcome {
             outcome.freed = size;
             outcome
         } else {
-            DeleteOutcome::failure("suppression refusee".to_string())
+            DeleteOutcome::failure("deletion refused".to_string())
         };
     }
 
@@ -617,7 +665,7 @@ pub fn delete_path(path: &Path, keep: &[String]) -> DeleteOutcome {
         outcome.kept_files = kept_files;
         if path.exists() && kept_files == 0 {
             outcome.ok = false;
-            outcome.error = "suppression incomplete".to_string();
+            outcome.error = "incomplete deletion".to_string();
         }
         return outcome;
     }
@@ -639,7 +687,8 @@ pub fn delete_path(path: &Path, keep: &[String]) -> DeleteOutcome {
 
 const MANAGED_HEADER: &str = "# ferrite";
 
-/// Ajoute les motifs manquants sous une section dediee. Retourne les ajouts.
+/// Appends the missing patterns under a dedicated section. Returns what was
+/// actually added.
 pub fn append_gitignore(repo: &Path, patterns: &[String]) -> Vec<String> {
     let target = repo.join(".gitignore");
     let existing: HashSet<String> = fs::read_to_string(&target)
@@ -671,7 +720,11 @@ pub fn append_gitignore(repo: &Path, patterns: &[String]) -> Vec<String> {
         block.push('\n');
     }
 
-    match fs::OpenOptions::new().create(true).append(true).open(&target) {
+    match fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&target)
+    {
         Ok(mut file) => {
             if file.write_all(block.as_bytes()).is_err() {
                 return Vec::new();
@@ -683,7 +736,7 @@ pub fn append_gitignore(repo: &Path, patterns: &[String]) -> Vec<String> {
     missing
 }
 
-/// Date du jour en ISO, calculee sans dependance externe.
+/// Today's date in ISO form, computed without an external dependency.
 fn today() -> String {
     let seconds = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -695,7 +748,7 @@ fn today() -> String {
     format!("{year:04}-{month:02}-{day:02}")
 }
 
-/// Conversion jours depuis l'epoch vers date civile (algorithme de Howard Hinnant).
+/// Days since the epoch to a civil date (Howard Hinnant's algorithm).
 fn civil_from_days(days: i64) -> (i64, u32, u32) {
     let z = days + 719_468;
     let era = if z >= 0 { z } else { z - 146_096 } / 146_097;

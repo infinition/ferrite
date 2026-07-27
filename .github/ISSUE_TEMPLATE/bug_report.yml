@@ -1,0 +1,50 @@
+name: Bug report
+description: Something behaved differently from what the documentation states
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what you got instead.
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Ferrite version
+      description: Visible with `Ferrite.exe --help`, or in the file properties.
+      placeholder: 1.0.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Detection, a rule fired or failed to fire
+        - Sizing, reported volumes look wrong
+        - gitignore, coverage or the fix button
+        - Cleaning, deletion or the keep .exe option
+        - Interface, layout or translation
+        - Startup, window or WebView2
+    validations:
+      required: true
+
+  - type: textarea
+    id: project-shape
+    attributes:
+      label: Project layout
+      description: >
+        For a detection issue, the relevant part of the tree helps a lot: the
+        artifact directory, its parent, and any marker file next to it such as
+        Cargo.toml or pom.xml.
+      render: text
+
+  - type: input
+    id: os
+    attributes:
+      label: Windows version
+      placeholder: Windows 11 24H2

@@ -2,8 +2,19 @@
 name = "ferrite"
 version = "1.0.0"
 edition = "2021"
-description = "Inventaire et nettoyage des artefacts regenerables d'un workspace"
+description = "Desktop app that inventories and cleans regenerable build artifacts across a workspace"
 authors = ["infinition"]
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/infinition/ferrite"
+keywords = ["cleanup", "disk-space", "build-artifacts", "gitignore", "workspace"]
+categories = ["command-line-utilities", "development-tools"]
+
+# Capitalised on purpose: this is the name users see in Explorer and in the
+# taskbar, so the produced binary is Ferrite.exe rather than ferrite.exe.
+[[bin]]
+name = "Ferrite"
+path = "src/main.rs"
 
 [dependencies]
 tiny_http = "0.12"

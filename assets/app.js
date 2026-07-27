@@ -1,7 +1,7 @@
 'use strict';
 
 /* =====================================================================
-   Etat
+   State
    ===================================================================== */
 
 const state = {
@@ -80,7 +80,7 @@ async function loadDict() {
 }
 
 /* =====================================================================
-   Formatage
+   Formatting
    ===================================================================== */
 
 function fmtSize(bytes) {
@@ -185,7 +185,7 @@ async function refreshJob() {
 }
 
 /* =====================================================================
-   Filtres et selection
+   Filters and selection
    ===================================================================== */
 
 function key(projectId, ruleId) { return projectId + '|' + ruleId; }
@@ -287,7 +287,7 @@ function buildSelections() {
 }
 
 /* =====================================================================
-   Rendu
+   Rendering
    ===================================================================== */
 
 function render() {
@@ -349,7 +349,7 @@ function needsIgnoreFix(counts) {
   return counts.none + counts.partial + counts.tracked;
 }
 
-/* Resume de couverture .gitignore, visible sans deplier le projet. */
+/* .gitignore coverage summary, readable without expanding the project. */
 function renderIgnoreSummary(project, items) {
   if (!project.is_git) return '';
   const counts = countIgnoreStatuses(items);
@@ -728,7 +728,7 @@ async function sendGitignore(selections) {
   else toast(t('toast.gitignore_none'), 'info');
   if (data.skipped > 0) toast(t('toast.gitignore_skipped', { count: data.skipped }), 'warn');
 
-  // Un motif ajoute ne prend effet qu'une fois le chemin sorti de l'index git.
+  // A pattern only takes effect once the path has left the git index.
   const stillTracked = (data.updates || [])
     .flatMap((update) => update.statuses || [])
     .filter((status) => status.ignore_status === 'tracked').length;
@@ -765,7 +765,7 @@ function toast(message, kind = 'info') {
 }
 
 /* =====================================================================
-   Demarrage
+   Bootstrap
    ===================================================================== */
 
 (async function boot() {
