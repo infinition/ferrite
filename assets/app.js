@@ -638,13 +638,20 @@ $('sel-none').addEventListener('click', () => { state.selection.clear(); redraw(
 
 $('scan-btn').addEventListener('click', startScan);
 $('workspace').addEventListener('keydown', (e) => { if (e.key === 'Enter') startScan(); });
-$('browseBtn').addEventListener('click', () => $('folderPicker').click());
-$('folderPicker').addEventListener('change', (e) => {
-  const path = e.target.files[0]?.path || e.target.value;
-  if (path) {
-    const dir = path.replace(/\\/g, '/').replace(/\/[^/]*$/, '');
-    $('workspace').value = dir;
-    localStorage.setItem('ferrite.workspace', dir);
+$('browseBtn').addEventListener('click', async () => {
+  $('browseBtn').disabled = true;
+  try {
+    const resp = await fetch('/api/pick-folder');
+    const data = await resp.json();
+    if (data.path) {
+      const dir = data.path.replace(/\\/g, '/');
+      $('workspace').value = dir;
+      localStorage.setItem('ferrite.workspace', dir);
+    }
+  } catch (e) {
+    console.error('Folder picker failed', e);
+  } finally {
+    $('browseBtn').disabled = false;
   }
 });
 $('cancel-btn').addEventListener('click', async () => {

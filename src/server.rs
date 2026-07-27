@@ -767,6 +767,28 @@ pub fn handle_request(state: Arc<AppState>, mut request: Request) {
             );
         }
 
+        (false, "/api/pick-folder") => {
+            let script = r#"
+Add-Type -AssemblyName System.Windows.Forms
+$f = New-Object System.Windows.Forms.FolderBrowserDialog
+$f.Description = "Select a workspace directory"
+if ($f.ShowDialog() -eq "OK") { Write-Output $f.SelectedPath }
+"#;
+            let path = std::process::Command::new("powershell")
+                .args(["-NoProfile", "-Command", script])
+                .output()
+                .ok()
+                .and_then(|o| {
+                    let s = String::from_utf8_lossy(&o.stdout).trim().to_string();
+                    if s.is_empty() { None } else { Some(s) }
+                });
+            respond_json(
+                request,
+                200,
+                &json!({ "path": path }),
+            );
+        }
+
         (false, _) if path.starts_with("/api/i18n/") => {
             let lang = i18n::resolve(path.strip_prefix("/api/i18n/"));
             respond_json(request, 200, &i18n::catalog(lang));
