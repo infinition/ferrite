@@ -1,0 +1,4 @@
+target/
+Ferrite.exe
+__pycache__/
+*.py[cod]

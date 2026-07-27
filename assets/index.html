@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ferrite</title>
+<link rel="icon" type="image/png" href="/static/icon-32.png">
+<link rel="apple-touch-icon" href="/static/icon-180.png">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="app">
+
+  <header class="app-header">
+    <div class="brand">
+      <img class="brand-mark" src="/static/icon-180.png" alt="">
+      <div class="brand-text">
+        <h1>
+          <span data-i18n="app.title">Ferrite</span>
+          <span class="brand-tag" data-i18n="app.tagline"></span>
+        </h1>
+        <p data-i18n="app.subtitle"></p>
+      </div>
+    </div>
+    <select id="lang-select" class="lang-select" aria-label="Language"></select>
+  </header>
+
+  <section class="scan-form">
+    <div class="field grow">
+      <label for="workspace" data-i18n="form.workspace_label"></label>
+      <input type="text" id="workspace" spellcheck="false" autocomplete="off"
+             data-i18n-attr="placeholder:form.workspace_placeholder">
+    </div>
+    <div class="field">
+      <label for="depth" data-i18n="form.depth_label"></label>
+      <select id="depth">
+        <option value="1" data-i18n="form.depth_1"></option>
+        <option value="2" selected data-i18n="form.depth_2"></option>
+        <option value="3" data-i18n="form.depth_3"></option>
+        <option value="4" data-i18n="form.depth_4"></option>
+        <option value="5" data-i18n="form.depth_5"></option>
+        <option value="6" data-i18n="form.depth_6"></option>
+      </select>
+    </div>
+    <div class="field shrink">
+      <button id="scan-btn" class="btn primary" data-i18n="form.scan"></button>
+    </div>
+  </section>
+
+  <section id="progress" class="progress hidden">
+    <div class="progress-head">
+      <span id="progress-label"></span>
+      <button id="cancel-btn" class="btn ghost small" data-i18n="form.cancel"></button>
+    </div>
+    <div class="progress-track"><div id="progress-fill" class="progress-fill"></div></div>
+    <div id="progress-current" class="progress-current"></div>
+  </section>
+
+  <section id="summary" class="summary hidden">
+    <div class="gauge-card">
+      <div class="donut" id="donut">
+        <div class="donut-hole">
+          <span class="donut-value" id="donut-value">0%</span>
+          <span class="donut-label" data-i18n="stats.ratio"></span>
+        </div>
+      </div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="num" id="stat-projects">0</div><div class="label" data-i18n="stats.projects"></div></div>
+      <div class="stat-card"><div class="num" id="stat-total">0</div><div class="label" data-i18n="stats.total_size"></div></div>
+      <div class="stat-card hot"><div class="num" id="stat-reclaim">0</div><div class="label" data-i18n="stats.reclaimable"></div></div>
+      <div class="stat-card amber"><div class="num" id="stat-files">0</div><div class="label" data-i18n="stats.reclaimable_files"></div></div>
+      <div class="stat-card steel"><div class="num" id="stat-git">0</div><div class="label" data-i18n="stats.git_size"></div></div>
+      <div class="stat-card sel"><div class="num" id="stat-selected">0</div><div class="label" data-i18n="stats.selected"></div></div>
+    </div>
+  </section>
+
+  <section id="toolbar" class="toolbar hidden">
+    <input type="search" id="filter-text" class="filter-input"
+           data-i18n-attr="placeholder:filter.search_placeholder">
+    <div class="chips" id="risk-chips">
+      <button class="chip active" data-risk="safe"><span class="dot risk-safe"></span><span data-i18n="risk.safe"></span></button>
+      <button class="chip active" data-risk="check"><span class="dot risk-check"></span><span data-i18n="risk.check"></span></button>
+      <button class="chip active" data-risk="data"><span class="dot risk-data"></span><span data-i18n="risk.data"></span></button>
+    </div>
+    <label class="toggle"><input type="checkbox" id="only-unignored"><span data-i18n="filter.only_unignored"></span></label>
+    <label class="toggle keep" id="keep-exe-label">
+      <input type="checkbox" id="keep-exe"><span data-i18n="filter.keep_exe"></span>
+    </label>
+    <div class="spacer"></div>
+    <div class="select-actions">
+      <button class="btn ghost small" id="sel-safe" data-i18n="select.safe"></button>
+      <button class="btn ghost small" id="sel-all" data-i18n="select.all"></button>
+      <button class="btn ghost small" id="sel-none" data-i18n="select.none"></button>
+    </div>
+  </section>
+
+  <section id="projects" class="projects"></section>
+
+  <div id="empty-state" class="empty hidden"></div>
+
+</div>
+
+<div id="actionbar" class="actionbar hidden">
+  <div class="actionbar-inner">
+    <div class="actionbar-summary">
+      <span class="pill" id="action-count"></span>
+      <span class="pill strong" id="action-size"></span>
+      <span class="pill keep hidden" id="action-keep"></span>
+      <span class="pill warn hidden" id="action-tracked"></span>
+      <span class="pill data hidden" id="action-data"></span>
+    </div>
+    <div class="actionbar-buttons">
+      <button class="btn ghost" id="btn-gitignore" data-i18n="action.gitignore"></button>
+      <button class="btn danger" id="btn-clean" data-i18n="action.clean"></button>
+    </div>
+  </div>
+</div>
+
+<div id="modal" class="modal hidden">
+  <div class="modal-box">
+    <h3 data-i18n="action.confirm_title"></h3>
+    <p id="modal-body"></p>
+    <p class="modal-note" data-i18n="action.confirm_regen"></p>
+    <div id="modal-warnings"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="modal-cancel" data-i18n="action.confirm_no"></button>
+      <button class="btn danger" id="modal-confirm" data-i18n="action.confirm_yes"></button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts" class="toasts"></div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,325 @@
+{
+  "meta": { "label": "Francais", "dir": "ltr" },
+
+  "app": {
+    "title": "Ferrite",
+    "tagline": "Nettoyage de workspace",
+    "subtitle": "Detecte les artefacts regenerables de chaque projet et verifie leur couverture .gitignore"
+  },
+
+  "form": {
+    "workspace_label": "Dossier workspace",
+    "workspace_placeholder": "C:\\DEV\\coding",
+    "depth_label": "Profondeur de recherche",
+    "depth_hint": "Niveaux explores pour trouver les projets",
+    "depth_1": "1 niveau",
+    "depth_2": "2 niveaux",
+    "depth_3": "3 niveaux",
+    "depth_4": "4 niveaux",
+    "depth_5": "5 niveaux",
+    "depth_6": "6 niveaux",
+    "scan": "Scanner",
+    "cancel": "Annuler",
+    "rescan": "Rescanner"
+  },
+
+  "scan": {
+    "discovering": "Recherche des projets...",
+    "scanning": "Analyse de {name}",
+    "progress": "{done} / {total} projets",
+    "done": "{count} projets analyses en {seconds}s",
+    "cancelled": "Scan annule",
+    "empty": "Aucun projet trouve a cette profondeur",
+    "no_items": "Aucun artefact supprimable detecte"
+  },
+
+  "stats": {
+    "projects": "Projets",
+    "total_size": "Volume total",
+    "reclaimable": "Recuperable",
+    "reclaimable_files": "Fichiers recuperables",
+    "git_size": "Historique git",
+    "ratio": "Part recuperable",
+    "selected": "Selectionne"
+  },
+
+  "filter": {
+    "search_placeholder": "Filtrer par projet ou artefact",
+    "risk_all": "Tous les risques",
+    "hide_clean": "Masquer les projets sans artefact",
+    "only_unignored": "Seulement les non ignores",
+    "keep_exe": "Conserver les .exe",
+    "keep_exe_tip": "Les executables .exe sont laisses en place dans les dossiers nettoyes, ainsi que les dossiers necessaires pour y acceder. Tout le reste est supprime.",
+    "sort_label": "Trier par",
+    "sort_size": "Volume",
+    "sort_name": "Nom",
+    "sort_files": "Fichiers"
+  },
+
+  "risk": {
+    "safe": "Sur",
+    "safe_desc": "Artefact de build pur, regenere par une commande",
+    "check": "A verifier",
+    "check_desc": "Generalement genere, mais peut contenir des sources selon le projet",
+    "data": "Donnees",
+    "data_desc": "Poids ou cache retelechargeable, la perte se mesure en bande passante"
+  },
+
+  "ignore": {
+    "all": "Ignore",
+    "partial": "Partiel",
+    "none": "Non ignore",
+    "tracked": "Deja versionne",
+    "na": "Hors git",
+    "tip_all": "Toutes les occurrences sont couvertes par un .gitignore",
+    "tip_partial": "Une partie seulement des occurrences est couverte par un .gitignore",
+    "tip_none": "Aucune occurrence n'est couverte par un .gitignore",
+    "tip_tracked": "Ces chemins sont dans l'index git. Tant qu'ils y restent, aucun motif .gitignore ne s'applique. Il faut d'abord executer: git rm -r --cached <chemin>",
+    "tip_na": "Ce projet n'est pas un depot git, la verification ne s'applique pas",
+    "add": "Ajouter au .gitignore",
+    "add_short": "Corriger le .gitignore",
+    "fix_tip": "Ajoute au .gitignore de ce projet les motifs manquants pour tous ses artefacts non couverts"
+  },
+
+  "tracked": {
+    "badge": "Suivi par git",
+    "tip": "{count} occurrences contiennent des fichiers versionnes. Les supprimer modifiera l'arbre de travail."
+  },
+
+  "cat": {
+    "js": "JavaScript",
+    "python": "Python",
+    "rust": "Rust",
+    "jvm": "JVM",
+    "dotnet": ".NET",
+    "go": "Go",
+    "php": "PHP",
+    "ruby": "Ruby",
+    "native": "C / C++",
+    "apple": "Apple",
+    "mobile": "Mobile",
+    "gamedev": "Jeux video",
+    "ml": "Machine learning",
+    "infra": "Infrastructure",
+    "docs": "Documentation",
+    "ide": "IDE",
+    "os": "Systeme",
+    "misc": "Divers"
+  },
+
+  "item": {
+    "restore": "Regenere par",
+    "occurrences": "{count} emplacements",
+    "occurrence_one": "1 emplacement",
+    "truncated": "et {count} autres emplacements",
+    "expand": "Deplier",
+    "collapse": "Replier"
+  },
+
+  "repo": {
+    "not_git": "Hors git",
+    "branch": "Branche",
+    "git_size": "Historique",
+    "of_total": "sur {total}",
+    "select_all": "Tout selectionner",
+    "select_safe": "Selectionner les surs",
+    "gc": "Compacter l'historique"
+  },
+
+  "select": {
+    "all": "Tout",
+    "none": "Rien",
+    "safe": "Surs uniquement",
+    "invert": "Inverser",
+    "summary": "{count} artefacts, {size}"
+  },
+
+  "action": {
+    "clean": "Nettoyer la selection",
+    "gitignore": "Completer les .gitignore",
+    "confirm_title": "Confirmer la suppression",
+    "confirm_body": "{count} artefacts vont etre supprimes definitivement, soit {size} repartis sur {projects} projets.",
+    "confirm_regen": "Ces elements se regenerent avec les commandes indiquees.",
+    "warn_tracked": "Attention: {count} elements selectionnes contiennent des fichiers versionnes par git. Leur suppression apparaitra comme une modification de l'arbre de travail.",
+    "warn_data": "Attention: {count} elements selectionnes sont des donnees (poids de modeles, caches). Le retelechargement represente {size}.",
+    "keep_exe_note": "Option active: les fichiers .exe seront conserves dans les dossiers nettoyes.",
+    "confirm_yes": "Supprimer",
+    "confirm_no": "Annuler",
+    "cleaning": "Suppression en cours..."
+  },
+
+  "toast": {
+    "nothing_selected": "Aucun artefact selectionne",
+    "clean_ok": "{count} artefacts supprimes, {size} liberes",
+    "clean_partial": "{ok} supprimes ({size} liberes), {failed} en echec",
+    "clean_fail": "Suppression impossible",
+    "clean_kept": "{count} fichiers .exe conserves, soit {size}",
+    "gitignore_ok": "{count} motifs ajoutes dans {repos} fichiers .gitignore",
+    "gitignore_none": "Tous les motifs sont deja presents",
+    "gitignore_skipped": "{count} projets ignores car hors git",
+    "gitignore_tracked": "{count} artefacts restent versionnes: le motif ne prendra effet qu'apres git rm -r --cached",
+    "gitgc_ok": "Historique compacte, {size} liberes",
+    "gitgc_none": "Historique deja compact",
+    "gitgc_fail": "Compactage impossible",
+    "scan_error": "Erreur de scan: {message}",
+    "copied": "Chemin copie"
+  },
+
+  "error": {
+    "missing_workspace": "Chemin du workspace manquant",
+    "not_a_directory": "Ce chemin n'existe pas ou n'est pas un dossier",
+    "job_not_found": "Scan introuvable ou expire",
+    "invalid_selection": "Selection invalide",
+    "outside_workspace": "Chemin hors du workspace scanne",
+    "not_git": "Ce projet n'est pas un depot git"
+  },
+
+  "unit": {
+    "bytes": "o",
+    "kb": "Ko",
+    "mb": "Mo",
+    "gb": "Go",
+    "tb": "To",
+    "files": "fichiers"
+  },
+
+  "rules": {
+    "node_modules": { "desc": "Dependances npm installees" },
+    "next": { "desc": "Build et cache Next.js" },
+    "nuxt": { "desc": "Build de developpement Nuxt" },
+    "nitro_output": { "desc": "Sortie de build Nitro ou Nuxt 3" },
+    "svelte_kit": { "desc": "Build intermediaire SvelteKit" },
+    "astro": { "desc": "Cache de build Astro" },
+    "docusaurus": { "desc": "Cache de build Docusaurus" },
+    "angular_cache": { "desc": "Cache du compilateur Angular" },
+    "parcel_cache": { "desc": "Cache du bundler Parcel" },
+    "turbo": { "desc": "Cache de taches Turborepo" },
+    "vite_cache": { "desc": "Cache de pre-bundling Vite" },
+    "rollup_cache": { "desc": "Cache de compilation Rollup" },
+    "webpack_cache": { "desc": "Cache de compilation Webpack" },
+    "serverless": { "desc": "Paquets generes par Serverless Framework" },
+    "yarn_cache": { "desc": "Cache et paquets deballes de Yarn Berry" },
+    "pnpm_store": { "desc": "Magasin local de paquets pnpm" },
+    "expo": { "desc": "Cache du client Expo" },
+    "metro_cache": { "desc": "Cache du bundler Metro" },
+    "storybook_static": { "desc": "Build statique de Storybook" },
+    "nyc_output": { "desc": "Donnees brutes de couverture nyc" },
+    "eslintcache": { "desc": "Cache incremental des linters" },
+    "tsbuildinfo": { "desc": "Etat incremental du compilateur TypeScript" },
+    "nx_cache": { "desc": "Cache de taches du monorepo Nx" },
+    "swc_cache": { "desc": "Cache du compilateur SWC" },
+    "legacy_modules": { "desc": "Dependances Bower, JSPM ou web_modules installees" },
+    "deploy_cache": { "desc": "Cache local des CLI de deploiement Vercel, Netlify, Cloudflare, Firebase" },
+    "vitepress_out": { "desc": "Cache et build VitePress" },
+    "vuepress_out": { "desc": "Cache et build VuePress" },
+    "playwright": { "desc": "Rapports et traces d'execution Playwright" },
+    "cypress_artifacts": { "desc": "Videos, captures et telechargements Cypress" },
+    "rpt2_cache": { "desc": "Cache du plugin TypeScript de Rollup" },
+    "legacy_task_cache": { "desc": "Caches Grunt, FuseBox et DynamoDB local" },
+    "npm_misc": { "desc": "Etats locaux de npm et Yarn" },
+
+    "pycache": { "desc": "Bytecode Python compile" },
+    "pytest_cache": { "desc": "Cache de collecte pytest" },
+    "mypy_cache": { "desc": "Cache d'analyse de types mypy" },
+    "ruff_cache": { "desc": "Cache du linter ruff" },
+    "tox": { "desc": "Environnements de test tox ou nox" },
+    "hypothesis": { "desc": "Base d'exemples Hypothesis" },
+    "venv": { "desc": "Environnement virtuel Python" },
+    "egg_info": { "desc": "Metadonnees de paquet setuptools" },
+    "eggs": { "desc": "Dependances de build setuptools" },
+    "ipynb_checkpoints": { "desc": "Sauvegardes automatiques Jupyter" },
+    "htmlcov": { "desc": "Rapport HTML de couverture" },
+    "coverage_file": { "desc": "Donnees brutes de couverture" },
+    "py_dist": { "desc": "Artefacts de packaging Python" },
+    "pyc": { "desc": "Fichiers Python compiles isoles" },
+    "mkdocs_site": { "desc": "Site statique genere par MkDocs" },
+    "sphinx_build": { "desc": "Documentation generee par Sphinx" },
+    "pdm_packages": { "desc": "Dependances PDM en mode PEP 582" },
+    "type_checker_cache": { "desc": "Caches des verificateurs de types Pyre et Pytype" },
+    "dmypy": { "desc": "Etat du daemon mypy" },
+    "scrapy_pybuilder": { "desc": "Caches Scrapy et PyBuilder" },
+    "egg_files": { "desc": "Paquets setuptools generes" },
+
+    "cargo_target": { "desc": "Artefacts de compilation Cargo" },
+
+    "maven_target": { "desc": "Artefacts de compilation Maven" },
+    "gradle_build": { "desc": "Artefacts de compilation Gradle" },
+    "gradle_cache": { "desc": "Cache local du daemon Gradle" },
+    "kotlin_cache": { "desc": "Cache du compilateur Kotlin" },
+    "class_files": { "desc": "Bytecode Java compile" },
+
+    "dotnet_bin": { "desc": "Sorties de compilation .NET" },
+    "dotnet_packages": { "desc": "Paquets NuGet restaures" },
+    "vs_cache": { "desc": "Cache de l'IDE Visual Studio" },
+
+    "go_vendor": { "desc": "Dependances Go vendorisees, parfois versionnees volontairement" },
+
+    "composer_vendor": { "desc": "Dependances Composer installees" },
+
+    "bundle_vendor": { "desc": "Gems installees localement" },
+    "bundle_config": { "desc": "Configuration locale de Bundler" },
+
+    "cmake_files": { "desc": "Fichiers intermediaires CMake" },
+    "cmake_build": { "desc": "Repertoire de build CMake" },
+    "cmake_cache": { "desc": "Cache de configuration CMake" },
+    "ccls_cache": { "desc": "Index des serveurs de langage C et C++" },
+    "object_files": { "desc": "Objets, symboles et en-tetes precompiles" },
+    "msvc_config": { "desc": "Sorties de configuration MSVC par plateforme" },
+    "autotools": { "desc": "Fichiers intermediaires des autotools" },
+    "autotools_files": { "desc": "Etat et journal du script configure" },
+    "vcpkg": { "desc": "Dependances installees par vcpkg" },
+
+    "derived_data": { "desc": "Donnees derivees Xcode" },
+    "swift_build": { "desc": "Artefacts de Swift Package Manager" },
+    "cocoapods": { "desc": "Dependances CocoaPods installees" },
+    "carthage_build": { "desc": "Frameworks compiles par Carthage" },
+    "xcuserdata": { "desc": "Preferences utilisateur des projets Xcode" },
+    "swiftpm_state": { "desc": "Etat de resolution de Swift Package Manager" },
+
+    "dart_tool": { "desc": "Cache d'outillage Dart et Flutter" },
+    "flutter_plugins": { "desc": "Manifestes de plugins generes" },
+    "elixir_build": { "desc": "Artefacts de compilation Mix" },
+    "elixir_deps": { "desc": "Dependances Hex recuperees" },
+    "android_cxx": { "desc": "Sorties de compilation native Android NDK" },
+
+    "unity_library": { "desc": "Cache d'import et donnees temporaires Unity" },
+    "unity_builds": { "desc": "Builds Unity exportes et captures de profilage" },
+    "godot_cache": { "desc": "Cache d'import Godot" },
+    "unreal_build": { "desc": "Binaires et intermediaires Unreal Engine" },
+
+    "hf_cache": { "desc": "Cache de modeles Hugging Face, retelechargeable" },
+    "hf_incomplete": { "desc": "Telechargements Hugging Face interrompus, inutilisables" },
+    "model_weights": { "desc": "Poids de modeles, retelechargeables depuis leur source" },
+    "wandb": { "desc": "Traces d'entrainement locales" },
+    "tracking_runs": { "desc": "Sorties de suivi d'experiences, TensorBoard, Hydra, Neptune" },
+
+    "terraform": { "desc": "Providers et modules Terraform" },
+    "terragrunt": { "desc": "Cache de modules Terragrunt" },
+    "pulumi": { "desc": "Etat local des piles Pulumi" },
+    "vagrant": { "desc": "Etat local des machines Vagrant" },
+
+    "jekyll_site": { "desc": "Site statique genere par Jekyll" },
+    "hugo_public": { "desc": "Site statique genere par Hugo" },
+    "sass_cache": { "desc": "Cache de compilation Sass" },
+    "quarto": { "desc": "Cache et rendu fige de Quarto" },
+    "gitbook": { "desc": "Livre genere par GitBook ou Docz" },
+
+    "idea": { "desc": "Configuration locale JetBrains, parfois versionnee volontairement" },
+    "vscode_history": { "desc": "Historique local de VS Code" },
+    "direnv": { "desc": "Environnement materialise par direnv" },
+    "editor_swap": { "desc": "Fichiers d'echange et sauvegardes d'editeur" },
+
+    "os_junk": { "desc": "Fichiers d'index crees par le systeme" },
+    "os_junk_dirs": { "desc": "Dossiers d'indexation et corbeilles du systeme" },
+
+    "generic_dist": { "desc": "Sortie de build, verifier qu'elle n'est pas la source livree" },
+    "generic_build": { "desc": "Dossier de build non rattache a un outil identifie, a verifier" },
+    "generic_cache": { "desc": "Cache generique, contenu variable selon l'outil" },
+    "generic_tmp": { "desc": "Fichiers temporaires d'execution" },
+    "generic_coverage": { "desc": "Rapports de couverture de tests" },
+    "log_dir": { "desc": "Journaux d'execution accumules" },
+    "log_files": { "desc": "Fichiers de journal isoles" },
+    "pid_files": { "desc": "Verrous et identifiants de processus" },
+    "patch_leftovers": { "desc": "Residus de patch, de fusion et de sauvegarde" }
+  }
+}
