@@ -11,107 +11,108 @@
 <body>
 
 <div class="app">
-
-  <header class="app-header">
-    <div class="brand">
-      <img class="brand-mark" src="/static/icon-180.png" alt="">
-      <div class="brand-text">
-        <h1>
-          <span data-i18n="app.title">Ferrite</span>
-          <span class="brand-tag" data-i18n="app.tagline"></span>
-        </h1>
-        <p data-i18n="app.subtitle"></p>
-      </div>
-    </div>
-    <select id="lang-select" class="lang-select" aria-label="Language"></select>
-    <a href="https://github.com/infinition/ferrite" target="_blank" class="gh-link" aria-label="GitHub">
-      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
-    </a>
-  </header>
-
-  <section class="scan-form">
-    <div class="field grow">
-      <label for="workspace" data-i18n="form.workspace_label"></label>
-      <div class="input-row">
-        <input type="text" id="workspace" spellcheck="false" autocomplete="off"
-                 data-i18n-attr="placeholder:form.workspace_placeholder">
-        <button id="btn-browse" class="btn-browse" type="button" title="Browse folder">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-          </svg>
-          <span>Browse</span>
-        </button>
-      </div>
-      <input type="file" id="folder-picker" webkitdirectory directory style="display:none">
-    </div>
-    <div class="field">
-      <label for="depth" data-i18n="form.depth_label"></label>
-      <select id="depth">
-        <option value="1" data-i18n="form.depth_1"></option>
-        <option value="2" selected data-i18n="form.depth_2"></option>
-        <option value="3" data-i18n="form.depth_3"></option>
-        <option value="4" data-i18n="form.depth_4"></option>
-        <option value="5" data-i18n="form.depth_5"></option>
-        <option value="6" data-i18n="form.depth_6"></option>
-      </select>
-    </div>
-    <div class="field shrink">
-      <button id="scan-btn" class="btn primary" data-i18n="form.scan"></button>
-    </div>
-  </section>
-
-  <section id="progress" class="progress hidden">
-    <div class="progress-head">
-      <span id="progress-label"></span>
-      <button id="cancel-btn" class="btn ghost small" data-i18n="form.cancel"></button>
-    </div>
-    <div class="progress-track"><div id="progress-fill" class="progress-fill"></div></div>
-    <div id="progress-current" class="progress-current"></div>
-  </section>
-
-  <section id="summary" class="summary hidden">
-    <div class="gauge-card">
-      <div class="donut" id="donut">
-        <div class="donut-hole">
-          <span class="donut-value" id="donut-value">0%</span>
-          <span class="donut-label" data-i18n="stats.ratio"></span>
+  <div class="top-controls">
+    <header class="app-header">
+      <div class="brand">
+        <img class="brand-mark" src="/static/icon-180.png" alt="">
+        <div class="brand-text">
+          <h1>
+            <span data-i18n="app.title">Ferrite</span>
+            <span class="brand-tag" data-i18n="app.tagline"></span>
+          </h1>
+          <p data-i18n="app.subtitle"></p>
         </div>
       </div>
-    </div>
-    <div class="stats-grid">
-      <div class="stat-card"><div class="num" id="stat-projects">0</div><div class="label" data-i18n="stats.projects"></div></div>
-      <div class="stat-card"><div class="num" id="stat-total">0</div><div class="label" data-i18n="stats.total_size"></div></div>
-      <div class="stat-card hot"><div class="num" id="stat-reclaim">0</div><div class="label" data-i18n="stats.reclaimable"></div></div>
-      <div class="stat-card amber"><div class="num" id="stat-files">0</div><div class="label" data-i18n="stats.reclaimable_files"></div></div>
-      <div class="stat-card steel"><div class="num" id="stat-git">0</div><div class="label" data-i18n="stats.git_size"></div></div>
-      <div class="stat-card sel"><div class="num" id="stat-selected">0</div><div class="label" data-i18n="stats.selected"></div></div>
-    </div>
-  </section>
+      <select id="lang-select" class="lang-select" aria-label="Language"></select>
+      <a href="https://github.com/infinition/ferrite" target="_blank" class="gh-link" aria-label="GitHub">
+        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+      </a>
+    </header>
 
-  <section id="toolbar" class="toolbar hidden">
-    <input type="search" id="filter-text" class="filter-input"
-           data-i18n-attr="placeholder:filter.search_placeholder">
-    <div class="chips" id="risk-chips">
-      <button class="chip active" data-risk="safe"><span class="dot risk-safe"></span><span data-i18n="risk.safe"></span></button>
-      <button class="chip active" data-risk="check"><span class="dot risk-check"></span><span data-i18n="risk.check"></span></button>
-      <button class="chip active" data-risk="data"><span class="dot risk-data"></span><span data-i18n="risk.data"></span></button>
-    </div>
-    <label class="toggle"><input type="checkbox" id="only-unignored"><span data-i18n="filter.only_unignored"></span></label>
-    <label class="toggle keep" id="keep-exe-label">
-      <input type="checkbox" id="keep-exe"><span data-i18n="filter.keep_exe"></span>
-    </label>
-    <div class="spacer"></div>
-    <div class="select-actions">
-      <button class="btn ghost small" id="sel-safe" data-i18n="select.safe"></button>
-      <button class="btn ghost small" id="sel-all" data-i18n="select.all"></button>
-      <button class="btn ghost small" id="sel-none" data-i18n="select.none"></button>
-    </div>
-  </section>
+    <section class="scan-form">
+      <div class="field grow">
+        <label for="workspace" data-i18n="form.workspace_label"></label>
+        <div class="input-row">
+          <input type="text" id="workspace" spellcheck="false" autocomplete="off"
+                   data-i18n-attr="placeholder:form.workspace_placeholder">
+          <button id="btn-browse" class="btn-browse" type="button" title="Browse folder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+            </svg>
+            <span>Browse</span>
+          </button>
+        </div>
+        <input type="file" id="folder-picker" webkitdirectory directory style="display:none">
+      </div>
+      <div class="field">
+        <label for="depth" data-i18n="form.depth_label"></label>
+        <select id="depth">
+          <option value="1" data-i18n="form.depth_1"></option>
+          <option value="2" selected data-i18n="form.depth_2"></option>
+          <option value="3" data-i18n="form.depth_3"></option>
+          <option value="4" data-i18n="form.depth_4"></option>
+          <option value="5" data-i18n="form.depth_5"></option>
+          <option value="6" data-i18n="form.depth_6"></option>
+        </select>
+      </div>
+      <div class="field shrink">
+        <button id="scan-btn" class="btn primary" data-i18n="form.scan"></button>
+      </div>
+    </section>
 
-  <section id="projects" class="projects"></section>
+    <section id="progress" class="progress hidden">
+      <div class="progress-head">
+        <span id="progress-label"></span>
+        <button id="cancel-btn" class="btn ghost small" data-i18n="form.cancel"></button>
+      </div>
+      <div class="progress-track"><div id="progress-fill" class="progress-fill"></div></div>
+      <div id="progress-current" class="progress-current"></div>
+    </section>
 
-  <div id="empty-state" class="empty hidden"></div>
+    <section id="summary" class="summary hidden">
+      <div class="gauge-card">
+        <div class="donut" id="donut">
+          <div class="donut-hole">
+            <span class="donut-value" id="donut-value">0%</span>
+            <span class="donut-label" data-i18n="stats.ratio"></span>
+          </div>
+        </div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="num" id="stat-projects">0</div><div class="label" data-i18n="stats.projects"></div></div>
+        <div class="stat-card"><div class="num" id="stat-total">0</div><div class="label" data-i18n="stats.total_size"></div></div>
+        <div class="stat-card hot"><div class="num" id="stat-reclaim">0</div><div class="label" data-i18n="stats.reclaimable"></div></div>
+        <div class="stat-card amber"><div class="num" id="stat-files">0</div><div class="label" data-i18n="stats.reclaimable_files"></div></div>
+        <div class="stat-card steel"><div class="num" id="stat-git">0</div><div class="label" data-i18n="stats.git_size"></div></div>
+        <div class="stat-card sel"><div class="num" id="stat-selected">0</div><div class="label" data-i18n="stats.selected"></div></div>
+      </div>
+    </section>
 
+    <section id="toolbar" class="toolbar hidden">
+      <input type="search" id="filter-text" class="filter-input"
+             data-i18n-attr="placeholder:filter.search_placeholder">
+      <div class="chips" id="risk-chips">
+        <button class="chip active" data-risk="safe"><span class="dot risk-safe"></span><span data-i18n="risk.safe"></span></button>
+        <button class="chip active" data-risk="check"><span class="dot risk-check"></span><span data-i18n="risk.check"></span></button>
+        <button class="chip active" data-risk="data"><span class="dot risk-data"></span><span data-i18n="risk.data"></span></button>
+      </div>
+      <label class="toggle"><input type="checkbox" id="only-unignored"><span data-i18n="filter.only_unignored"></span></label>
+      <label class="toggle keep" id="keep-exe-label">
+        <input type="checkbox" id="keep-exe"><span data-i18n="filter.keep_exe"></span>
+      </label>
+      <div class="spacer"></div>
+      <div class="select-actions">
+        <button class="btn ghost small" id="sel-safe" data-i18n="select.safe"></button>
+        <button class="btn ghost small" id="sel-all" data-i18n="select.all"></button>
+        <button class="btn ghost small" id="sel-none" data-i18n="select.none"></button>
+      </div>
+    </section>
+  </div>
+
+  <div class="main-scroll-area">
+    <section id="projects" class="projects"></section>
+    <div id="empty-state" class="empty hidden"></div>
+  </div>
 </div>
 
 <div id="actionbar" class="actionbar hidden">

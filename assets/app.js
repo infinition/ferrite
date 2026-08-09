@@ -815,4 +815,5 @@ function toast(message, kind = 'info') {
       }
     });
   }
+  document.addEventListener('contextmenu', e => e.preventDefault());
 })();
