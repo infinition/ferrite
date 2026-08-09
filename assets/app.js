@@ -314,10 +314,15 @@ function render() {
   $('toolbar').classList.remove('hidden');
 
   const ratio = totals.total ? (totals.reclaim / totals.total) * 100 : 0;
-  const degrees = (ratio / 100) * 360;
-  $('donut').style.background =
-    `conic-gradient(var(--orange) ${degrees}deg, var(--bg-input) ${degrees}deg)`;
-  $('donut-value').textContent = ratio.toFixed(ratio >= 10 ? 0 : 1) + '%';
+  const donutEl = $('donut');
+  if (donutEl) {
+    const degrees = (ratio / 100) * 360;
+    donutEl.style.background = `conic-gradient(var(--orange) ${degrees}deg, var(--bg-input) ${degrees}deg)`;
+  }
+  const donutVal = $('donut-value');
+  if (donutVal) {
+    donutVal.textContent = ratio.toFixed(ratio >= 10 ? 0 : 1) + '%';
+  }
 
   $('stat-projects').textContent = fmtNum(state.projects.length);
   $('stat-total').textContent = fmtSize(totals.total);

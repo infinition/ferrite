@@ -268,6 +268,14 @@ const SKIP_DIRS: &[&str] = &[
 /// any deeper for nested projects.
 pub fn discover_projects(workspace: &Path, max_depth: usize) -> Vec<PathBuf> {
     let mut projects = Vec::new();
+
+    if let Some(names) = child_names(workspace) {
+        if looks_like_project(&names) {
+            projects.push(workspace.to_path_buf());
+            return projects;
+        }
+    }
+
     let mut queue = vec![(workspace.to_path_buf(), 0usize)];
 
     while let Some((current, depth)) = queue.pop() {
