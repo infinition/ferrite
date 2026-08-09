@@ -110,10 +110,10 @@ html, body {
 
 /* ================= Formulaire ================= */
 .scan-form {
-  display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; align-items: flex-end;
+  display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; align-items: flex-end;
 }
-.field { display: flex; flex-direction: column; min-width: 140px; }
-.field.grow { flex: 1 1 260px; }
+.field { display: flex; flex-direction: column; }
+.field.grow { flex: 1 1 200px; min-width: 0; }
 .field.shrink { min-width: 0; flex: 0 0 auto; }
 .field label {
   font-size: 0.66rem; font-weight: 700; text-transform: uppercase;
@@ -188,33 +188,10 @@ html, body {
 
 /* ================= Resume ================= */
 .summary {
-  display: grid; grid-template-columns: auto minmax(0, 1fr);
-  gap: 10px; margin-bottom: 10px; align-items: stretch;
+  margin-bottom: 10px;
 }
-.gauge-card {
-  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 10px 14px; display: flex; align-items: center; justify-content: center;
-}
-.donut {
-  width: clamp(64px, 5.5vw, 84px); aspect-ratio: 1; border-radius: 50%;
-  background: conic-gradient(var(--orange) 0deg, var(--bg-input) 0deg);
-  display: grid; place-items: center; transition: background 0.4s ease;
-}
-.donut-hole {
-  width: 74%; aspect-ratio: 1; border-radius: 50%; background: var(--bg-card);
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
-}
-.donut-value {
-  font-size: clamp(0.95rem, 1.25vw, 1.25rem); font-weight: 700;
-  font-variant-numeric: tabular-nums; color: var(--orange);
-}
-.donut-label {
-  font-size: 0.54rem; text-transform: uppercase; letter-spacing: 0.06em;
-  color: var(--text-dim); text-align: center; padding: 0 4px;
-}
-
 .stats-grid {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(105px, 1fr)); gap: 8px;
 }
 .stat-card {
   background: var(--bg-card); border: 1px solid var(--border);
@@ -503,20 +480,17 @@ html, body {
   .brand-text p { display: none; }
   .app-header h1 { font-size: 1.1rem; }
   .scan-form { margin-bottom: 6px; gap: 6px; flex-direction: column; }
-  .field { min-width: 0; width: 100%; }
+  .field { min-width: 0; width: 100%; flex: none !important; }
   .field label { font-size: 0.6rem; margin-bottom: 2px; }
   .field input, .field select { padding: 5px 8px; font-size: 0.8rem; }
   .btn-browse { padding: 0 10px; font-size: 0.7rem; }
   .btn-browse svg { width: 14px; height: 14px; }
 
-  .summary { grid-template-columns: auto 1fr; gap: 6px; margin-bottom: 6px; }
-  .gauge-card { padding: 6px; }
-  .donut { width: 50px; }
-  .donut-value { font-size: 0.85rem; }
+  .summary { margin-bottom: 6px; }
   .stats-grid { display: flex; overflow-x: auto; flex-wrap: nowrap; gap: 5px; padding-bottom: 2px; }
-  .stat-card { padding: 4px 6px; min-width: 62px; flex: 1; flex-shrink: 0; }
-  .stat-card .num { font-size: 0.88rem; }
-  .stat-card .label { font-size: 0.5rem; margin-top: 1px; letter-spacing: 0.02em; }
+  .stat-card { padding: 5px 8px; min-width: 68px; flex: 1; flex-shrink: 0; text-align: center; }
+  .stat-card .num { font-size: 0.9rem; line-height: 1.1; }
+  .stat-card .label { font-size: 0.52rem; margin-top: 2px; letter-spacing: 0.02em; }
 
   .toolbar { padding: 6px 8px; margin-bottom: 6px; gap: 6px; }
   .filter-input { max-width: none; width: 100%; padding: 5px 8px; font-size: 0.78rem; }
