@@ -781,4 +781,38 @@ function toast(message, kind = 'info') {
   const saved = localStorage.getItem('ferrite.workspace');
   if (saved) $('workspace').value = saved;
   $('workspace').focus();
+
+  const btnBrowse = $('btn-browse');
+  const folderPicker = $('folder-picker');
+
+  if (btnBrowse) {
+    btnBrowse.addEventListener('click', () => {
+      fetch('/api/browse-folder')
+        .then(r => r.json())
+        .then(data => {
+          if (data && data.path) {
+            $('workspace').value = data.path;
+            localStorage.setItem('ferrite.workspace', data.path);
+          } else if (folderPicker) {
+            folderPicker.click();
+          }
+        })
+        .catch(() => {
+          if (folderPicker) folderPicker.click();
+        });
+    });
+  }
+
+  if (folderPicker) {
+    folderPicker.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files.length > 0) {
+        const file = e.target.files[0];
+        const path = file.path || (file.webkitRelativePath ? file.webkitRelativePath.split('/')[0] : '');
+        if (path) {
+          $('workspace').value = path;
+          localStorage.setItem('ferrite.workspace', path);
+        }
+      }
+    });
+  }
 })();

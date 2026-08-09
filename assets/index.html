@@ -32,8 +32,17 @@
   <section class="scan-form">
     <div class="field grow">
       <label for="workspace" data-i18n="form.workspace_label"></label>
-      <input type="text" id="workspace" spellcheck="false" autocomplete="off"
-               data-i18n-attr="placeholder:form.workspace_placeholder">
+      <div class="input-row">
+        <input type="text" id="workspace" spellcheck="false" autocomplete="off"
+                 data-i18n-attr="placeholder:form.workspace_placeholder">
+        <button id="btn-browse" class="btn-browse" type="button" title="Browse folder">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <span>Browse</span>
+        </button>
+      </div>
+      <input type="file" id="folder-picker" webkitdirectory directory style="display:none">
     </div>
     <div class="field">
       <label for="depth" data-i18n="form.depth_label"></label>

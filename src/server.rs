@@ -699,6 +699,37 @@ fn respond(request: Request, status: u16, body: Vec<u8>, content_type: &str) {
     let _ = request.respond(response);
 }
 
+fn handle_browse_folder() -> (u16, Value) {
+    let path = std::thread::spawn(|| {
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            let script = "Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.FolderBrowserDialog; $f.Description = 'Select Workspace Folder'; if ($f.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { Write-Output $f.SelectedPath }";
+            let output = std::process::Command::new("powershell")
+                .args(["-NoProfile", "-WindowStyle", "Hidden", "-Command", script])
+                .creation_flags(0x0800_0000)
+                .output();
+            if let Ok(out) = output {
+                let s = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                if !s.is_empty() {
+                    return Some(s);
+                }
+            }
+        }
+        None
+    })
+    .join()
+    .ok()
+    .flatten();
+
+    if let Some(folder) = path {
+        let normalized = folder.replace('\\', "/");
+        (200, json!({ "path": normalized }))
+    } else {
+        (200, json!({ "path": null }))
+    }
+}
+
 fn respond_json(request: Request, status: u16, value: &Value) {
     respond(
         request,
@@ -751,6 +782,11 @@ pub fn handle_request(state: Arc<AppState>, mut request: Request) {
             respond(request, 200, ICON_32.to_vec(), "image/png")
         }
         (false, "/static/icon-180.png") => respond(request, 200, ICON_180.to_vec(), "image/png"),
+
+        (false, "/api/browse-folder") => {
+            let (status, payload) = handle_browse_folder();
+            respond_json(request, status, &payload);
+        }
 
         (false, "/api/languages") => {
             let languages: Vec<Value> = i18n::languages()
